@@ -1,0 +1,18 @@
+# ROS 编译生成的目录 (绝对不能提交)
+build/
+devel/
+logs/
+
+# catkin_tools 配置 (如果使用 catkin build)
+.catkin_tools/
+
+# Python 缓存
+*.pyc
+__pycache__/
+
+
+
+# IDE 配置 (可选，根据个人习惯)
+.idea/
+.vscode/
+*.launch.user

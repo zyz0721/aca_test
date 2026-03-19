@@ -1,0 +1,60 @@
+# ============================================================
+# 四舵轮 MPC 完整配置
+# ============================================================
+
+# --- 运行模式 ---
+mode:
+  sim: false                    # Gazebo 模式用 false, 从 /odom 读状态
+  odom_topic: "/odom"           # p3d 插件发布的 ground truth
+  joint_cmd_topic: "/joint_commands"
+
+# --- 求解器 ---
+solver:
+  nx: 6
+  nu: 3
+  np: 1
+  N: 20
+  T: 1.0                       # 预测时域 [s]
+  hz: 50.0                     # 控制频率 [Hz]
+  algorithm: "SQP_RTI"         # 可选: "SQP_RTI" 或 "SQP"
+  sqp_max_iter: 50             # FULL SQP 模式下的最大迭代次数
+
+# --- 参考轨迹 ---
+reference:
+  type: "circle"                # circle / line / figure8
+  radius: 1.5
+  speed: 0.8                    # 先用慢速测试
+  line_vx: 0.8
+  fig8_a: 2.0
+  fig8_omega: 0.3
+
+# --- 车辆参数 (对齐 URDF xacro) ---
+vehicle:
+  wheel_base: 0.494             # URDF: ±0.247 → 0.494
+  track_width: 0.494            # URDF: ±0.247 → 0.494  
+  wheel_radius: 0.08            # URDF xacro: wheel_radius=0.08
+  max_vel: 2.0
+  max_acc: 1.0
+  max_yaw_rate: 1.5
+  max_yaw_acc: 2.0
+  steer_lim_min: -1.5708        # -π/2
+  steer_lim_max: 1.5708         # π/2
+  max_steer_rate: 15.0
+  max_wheel_vel: 2.0            
+
+# --- 关节名称 ---
+joints:
+  prefix: ""
+
+# --- MPC 代价权重 (改为数组形式) ---
+cost:
+  # 顺序: [x, y, yaw, vx, vy, dyaw, ddx, ddy, ddyaw]
+  W: [15.0, 15.0, 5.0, 1.0, 1.0, 2.0, 0.05, 0.05, 0.05]
+
+cost_terminal:
+  # W_e 长度必须等于 nx
+  W_e: [40.0, 40.0, 2.0, 1.0, 1.0, 1.0]
+
+# --- 初始状态 ---
+initial_state:
+  x0: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

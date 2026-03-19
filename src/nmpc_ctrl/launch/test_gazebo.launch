@@ -1,0 +1,58 @@
+<launch>
+    <!-- ============================================ -->
+    <!-- 第一步: 只测试 Gazebo + 控制器, 不启动 MPC   -->
+    <!-- 前提: 先运行 bash fix_urdf_visual.sh         -->
+    <!-- 用法: roslaunch nmpc_ctrl test_gazebo.launch  -->
+    <!-- ============================================ -->
+
+    <!-- Gazebo 空世界 -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="paused" value="false"/>
+        <arg name="gui" value="true"/>
+        <remap from="/joint_states" to="/gazebo/joint_states"/>
+    </include>
+
+    <!-- 加载 URDF -->
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find galbot_s1_v1_description)/urdf/galbot_S1_V1_with_GE10301.urdf.xacro"/>
+
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+        <rosparam param="source_list">["/gazebo/joint_states"]</rosparam>
+    </node>
+
+    <!-- ★ robot_state_publisher: 发布 TF, 让 RViz 显示 URDF 模型 -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher"
+          type="robot_state_publisher" output="screen">
+        <param name="publish_frequency" value="50"/>
+    </node>
+
+    <!-- ★ 发布 map→odom 静态 TF (RViz Fixed Frame 用 map) -->
+    <node pkg="tf2_ros" type="static_transform_publisher"
+          name="map_to_odom"
+          args="0 0 0 0 0 0 map odom"/>
+
+    <!-- Spawn 机器人 -->
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
+          args="-urdf -model robot -param robot_description -z 0.05"
+          output="screen"/>
+
+    <!-- 加载控制器参数 -->
+    <rosparam file="$(find nmpc_ctrl)/config/gazebo_controllers.yaml"/>
+
+    <!-- 启动控制器 -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner"
+          respawn="false" output="screen"
+          args="joint_state_controller
+                fl_steer_controller fr_steer_controller
+                rl_steer_controller rr_steer_controller
+                fl_drive_controller fr_drive_controller
+                rl_drive_controller rr_drive_controller"/>
+
+    <!-- 测试节点 -->
+    <node name="test_wheels" pkg="nmpc_ctrl" type="test_wheels.py"
+          output="screen" launch-prefix="bash -c 'sleep 10; $0 $@'"/>
+
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz"
+          args="-d $(find nmpc_ctrl)/config/mpc_viz.rviz"/>
+</launch>

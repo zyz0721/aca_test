@@ -1,0 +1,98 @@
+controller_manager:
+  ros__parameters:
+    use_sim_time: true
+    update_rate: 50 # Hz
+    
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+      use_sim_time: true
+    # 控制器声明
+    # 底盘
+    forward_velocity_controller:
+      type: forward_command_controller/ForwardCommandController
+    forward_position_controller:
+      type: forward_command_controller/ForwardCommandController
+    # 腰部
+    waist_position_controller:
+      type: position_controllers/JointGroupPositionController
+    # 头部
+    head_position_controller:
+      type: position_controllers/JointGroupPositionController
+    # 左臂
+    left_arm_position_controller:
+      type: position_controllers/JointGroupPositionController
+    # 右臂
+    right_arm_position_controller:
+      type: position_controllers/JointGroupPositionController
+#  底盘
+forward_velocity_controller:
+  ros__parameters:
+    joints:
+      - Wheel_2_drive_joint
+      - Wheel_1_drive_joint
+      - Wheel_4_drive_joint
+      - Wheel_3_drive_joint
+    interface_name: velocity
+    command_interfaces:
+      - velocity
+    state_interfaces:
+      - position
+      - velocity
+forward_position_controller:
+  ros__parameters:
+    joints:
+      - Wheel_2_direction_joint
+      - Wheel_1_direction_joint
+      - Wheel_4_direction_joint
+      - Wheel_3_direction_joint
+    interface_name: position
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+#  腰部关节
+waist_position_controller:
+  ros__parameters:
+    joints:
+      - torso_base_joint  
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+# 头部
+head_position_controller:
+  ros__parameters:
+      joints:
+        - head_joint1  
+        - head_joint2 
+      command_interfaces: [position]
+      state_interfaces: [position, velocity]
+# 左臂
+left_arm_position_controller:
+  ros__parameters:
+    joints:
+      - left_arm_joint1
+      - left_arm_joint2
+      - left_arm_joint3
+      - left_arm_joint4
+      - left_arm_joint5
+      - left_arm_joint6
+      - left_arm_joint7
+
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+
+# 右臂
+right_arm_position_controller:
+  ros__parameters:
+    joints:
+      - right_arm_joint1
+      - right_arm_joint2
+      - right_arm_joint3
+      - right_arm_joint4
+      - right_arm_joint5
+      - right_arm_joint6
+      - right_arm_joint7
+
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+

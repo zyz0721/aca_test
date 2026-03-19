@@ -1,0 +1,29 @@
+<launch>
+  <arg
+    name="model" />
+  <param
+    name="robot_description"
+    textfile="$(find galbot_S1_V1_description)/predefined_description/galbot_S1_V1_sphere.urdf" />
+
+
+  <node
+    name="joint_state_publisher_gui"
+    pkg="joint_state_publisher_gui"
+    type="joint_state_publisher_gui" />
+  <node
+    name="robot_state_publisher"
+    pkg="robot_state_publisher"
+    type="robot_state_publisher" />
+  <node
+    name="rviz"
+    pkg="rviz"
+    type="rviz"
+    args="-d $(find galbot_S1_V1_description)/config/rviz1.rviz" />
+
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="head_camera" 
+      args="0.08964569657510386 -0.06134444617331525 0.03425444082602784 0.17622612747372593 -0.6833078770528612 -0.17785291377265425 -0.6858593428799404
+      head_link1 head_camera" /> -->
+<!-- 
+  <node pkg="tf2_ros" type="static_transform_publisher" name="static_leg_to_agv" 
+      args="0 0 0 0 0.70710678 0.70710678 0 torso_base_link leg_link3" /> -->
+</launch>

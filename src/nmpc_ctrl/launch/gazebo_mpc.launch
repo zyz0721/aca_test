@@ -1,0 +1,49 @@
+<launch>
+    <!-- Gazebo 空世界 -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="paused" value="false"/>
+        <arg name="gui" value="true"/>
+        <!-- <remap from="/joint_states" to="/gazebo/joint_states"/> -->
+    </include>
+
+    <!-- 加载 URDF -->
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find galbot_s1_v1_description)/urdf/galbot_S1_V1_with_GE10301.urdf.xacro"/>
+
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
+          args="-urdf -model robot -param robot_description"/>
+
+    <!-- 从gazebo订阅关节状态，发布到joint_state -->
+    <node name = "joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+    <rosparam param = "source_list">["/joint_states"]</rosparam>
+    <remap from="/joint_states" to="/joint_states_merged"/>
+    </node>
+    <!-- ★ robot_state_publisher: 让 RViz 显示 URDF 模型 -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher"
+          type="robot_state_publisher" output="screen">
+        <remap from = "/joint_states" to= "/joint_states_merged"/>
+        <param name="publish_frequency" value="50"/>
+    </node>
+
+    <!-- 加载控制器参数 -->
+    <rosparam file="$(find nmpc_ctrl)/config/gazebo_controllers.yaml"/>
+
+    <!-- 启动控制器 -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner"
+          args="joint_state_controller
+                fl_steer_controller fr_steer_controller
+                rl_steer_controller rr_steer_controller
+                fl_drive_controller fr_drive_controller
+                rl_drive_controller rr_drive_controller"/>
+
+    <!-- MPC 节点 -->
+    <node name="mpc_node" pkg="nmpc_ctrl" type="mpc_node" output="screen">
+        <rosparam file="$(find nmpc_ctrl)/config/mpc_config.yaml"/>
+        <!-- 覆盖为实车模式 -->
+        <param name="mode/sim" value="false"/>
+    </node>
+
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz"
+          args="-d $(find nmpc_ctrl)/config/mpc_viz.rviz"/>
+</launch>

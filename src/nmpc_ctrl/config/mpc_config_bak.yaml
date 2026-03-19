@@ -1,0 +1,69 @@
+# ============================================================
+# 四舵轮 MPC 完整配置
+# ============================================================
+
+# --- 运行模式 ---
+mode:
+  sim: true                     # true=仿真(内部积分), false=实车(订阅odom)
+  odom_topic: "/odom"           # 实车模式下的里程计话题
+  joint_cmd_topic: "/joint_commands"  # 关节命令话题
+
+# --- 求解器 ---
+solver:
+  N: 20
+  T: 1.0                       # 预测时域 [s]
+  hz: 50.0                     # 控制频率 [Hz]
+
+# --- 参考轨迹 (sim_mode 下使用) ---
+reference:
+  type: "circle"                # circle / line / figure8
+  radius: 2.0
+  speed: 1.0
+  line_vx: 1.0
+  fig8_a: 2.0
+  fig8_omega: 0.3
+
+# --- 车辆参数 ---
+vehicle:
+  wheel_base: 0.6              # 轴距 [m]
+  track_width: 0.5             # 轮距 [m]
+  wheel_radius: 0.075          # 轮子半径 [m]
+  max_vel: 2.0                 # 最大线速度 [m/s]
+  max_acc: 1.0                 # 最大加速度 [m/s^2]
+  max_yaw_rate: 1.5            # 最大角速度 [rad/s]
+  max_yaw_acc: 2.0             # 最大角加速度 [rad/s^2]
+  # 舵轮约束 (在逆运动学层执行)
+  steer_lim_min: -1.5708       # -π/2 [rad]
+  steer_lim_max: 1.5708        # π/2 [rad]
+  max_steer_rate: 5.0          # 最大舵角变化率 [rad/s]
+  max_wheel_vel: 1.0           # 最大轮面线速度 [m/s]
+
+# --- 关节名称 (需与 URDF 对应) ---
+joints:
+  prefix: ""                   # 关节名前缀, 如 "robot/"
+  # 默认: fl_steer_joint, fr_steer_joint, rl_steer_joint, rr_steer_joint
+  #       fl_drive_joint, fr_drive_joint, rl_drive_joint, rr_drive_joint
+
+# --- MPC 代价权重 ---
+cost:
+  Q_xy: 3.0                    # 
+  Q_yaw: 2.0                   # 
+  Q_vxy: 2.0                   # 
+  Q_dyaw: 1.0
+  R_axy: 0.5                   #
+  R_ddyaw: 0.5
+
+cost_terminal:
+  Q_xy: 6.0                    # 
+  Q_yaw: 4.0
+  Q_vxy: 4.0
+  Q_dyaw: 2.0
+
+# --- 初始状态 (sim_mode 用) ---
+initial_state:
+  x: 0.0
+  y: 0.0
+  yaw: 0.0
+  vx: 0.0
+  vy: 0.0
+  dyaw: 0.0

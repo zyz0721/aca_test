@@ -1,0 +1,48 @@
+fl_steer_controller:
+  type: position_controllers/JointPositionController
+  joint: Wheel_2_direction_joint
+  # pid: {p: 100.0, i: 5.0, d: 5.0, i_clamp: 50.0}
+  # pid: {p: 60, i: 0.0, d: 5.0, i_clamp: 50.0}
+
+fr_steer_controller:
+  type: position_controllers/JointPositionController
+  joint: Wheel_1_direction_joint
+  # pid: {p: 100.0, i: 5.0, d: 5.0, i_clamp: 50.0}
+  # pid: {p: 60, i: 0.0, d: 5.0, i_clamp: 50.0}
+
+rl_steer_controller:
+  type: position_controllers/JointPositionController
+  joint: Wheel_4_direction_joint
+  # pid: {p: 100.0, i: 5.0, d: 5.0, i_clamp: 50.0}
+  # pid: {p: 60, i: 0.0, d: 5.0, i_clamp: 50.0}
+
+rr_steer_controller:
+  type: position_controllers/JointPositionController
+  joint: Wheel_3_direction_joint
+  # pid: {p: 100.0, i: 5.0, d: 5.0, i_clamp: 50.0}
+  # pid: {p: 60, i: 0.0, d: 5.0, i_clamp: 50.0}
+
+fl_drive_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: Wheel_2_drive_joint
+  # pid: {p: 10.0, i: 0.0, d: 0.01, i_clamp: 20.0}
+
+fr_drive_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: Wheel_1_drive_joint
+  # pid: {p: 10.0, i: 0.0, d: 0.01, i_clamp: 20.0}
+
+rl_drive_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: Wheel_4_drive_joint
+  # pid: {p: 10.0, i: 0.0, d: 0.01, i_clamp: 20.0}
+
+rr_drive_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: Wheel_3_drive_joint
+  # pid: {p: 10.0, i: 0.0, d: 0.01, i_clamp: 20.0}
+
+# 关节状态发布器
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 100

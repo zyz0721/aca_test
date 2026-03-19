@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>galbot_s1_v1_description</name>
+  <version>0.0.1</version>
+  <description>Galbot S1 V1 robot description for ROS 1</description>
+
+  <maintainer email="your_email@example.com">Your Name</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+  
+  <exec_depend>urdf</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>rviz</exec_depend>
+
+  <export>
+    </export>
+</package>

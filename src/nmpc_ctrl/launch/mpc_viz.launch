@@ -1,0 +1,17 @@
+<launch>
+    <param name="robot_description" 
+           command="$(find xacro)/xacro '$(find galbot_s1_v1_description)/urdf/galbot_S1_V1_with_GE10301.urdf.xacro'" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
+
+    <node pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="joint_state_publisher_gui" />
+    <!-- 加载参数到 mpc_node 的私有命名空间 -->
+    <node pkg="nmpc_ctrl" type="mpc_node" name="mpc_node" output="screen">
+        <rosparam file="$(find nmpc_ctrl)/config/mpc_config.yaml" />
+    </node>
+
+    <!-- RViz -->
+    <node pkg="rviz" type="rviz" name="rviz"
+          args="-d $(find nmpc_ctrl)/config/mpc_viz.rviz"
+          required="false" />
+</launch>
