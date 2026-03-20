@@ -1,0 +1,24 @@
+过滤掉所有的构建目录
+
+casadi_local/build/
+acados_local/build/
+**/build/
+
+过滤掉 CMake 的幽灵缓存
+
+**/CMakeCache.txt
+**/CMakeFiles/
+**/cmake_install.cmake
+**/Makefile
+
+过滤掉宿主机(Ubuntu 24.04)编译的二进制文件
+
+**/.o
+**/.so
+**/.so.
+**/*.a
+
+过滤掉 Git 的索引目录，防止 Git 状态错乱
+
+**/.git/
+**/.github/

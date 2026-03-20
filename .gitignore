@@ -10,7 +10,9 @@ logs/
 *.pyc
 __pycache__/
 
-
+# 本地依赖
+acados_local/
+casadi_local/
 
 # IDE 配置 (可选，根据个人习惯)
 .idea/
