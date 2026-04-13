@@ -16,7 +16,7 @@ solver:
 
 # --- 参考轨迹 (sim_mode 下使用) ---
 reference:
-  type: "circle"                # circle / line / figure8
+  type: "figure8"                # circle / line / figure8
   radius: 2.0
   speed: 1.0
   line_vx: 1.0

@@ -34,7 +34,11 @@
                 fl_steer_controller fr_steer_controller
                 rl_steer_controller rr_steer_controller
                 fl_drive_controller fr_drive_controller
-                rl_drive_controller rr_drive_controller"/>
+                rl_drive_controller rr_drive_controller
+                left_arm_joint1_position_controller left_arm_joint2_position_controller 
+                left_arm_joint3_position_controller left_arm_joint4_position_controller 
+                left_arm_joint5_position_controller left_arm_joint6_position_controller 
+                left_arm_joint7_position_controller"/>
 
     <!-- MPC 节点 -->
     <node name="mpc_node" pkg="nmpc_ctrl" type="mpc_node" output="screen">

@@ -21,7 +21,7 @@ solver:
 
 # --- 参考轨迹 ---
 reference:
-  type: "circle"                # circle / line / figure8
+  type: "figure8"                # circle / line / figure8
   radius: 1.5
   speed: 0.8                    # 先用慢速测试
   line_vx: 0.8

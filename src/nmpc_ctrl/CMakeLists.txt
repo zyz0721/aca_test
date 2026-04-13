@@ -224,6 +224,24 @@ target_link_libraries(mpc_node
   casadi 
   dl       # 用于 dlopen 和 dlsym
   )
+
+add_executable(arm_mpc_node 
+  src/arm_mpc_node.cpp
+  src/mpc_solver.cpp
+  src/mpc_backend/AcadosWrapper.cpp
+  src/mpc_backend/ModelCompiler.cpp
+)
+target_link_libraries(arm_mpc_node
+  ${catkin_LIBRARIES}
+  acados 
+  hpipm 
+  blasfeo 
+  m 
+  OpenMP::OpenMP_CXX 
+  ${ACADOS_INSTALL_DIR}/lib/libqpOASES_e.so
+  casadi 
+  dl
+) 
 #############
 ## Testing ##
 #############
