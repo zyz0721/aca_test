@@ -51,7 +51,25 @@
         <param name="mode/sim" value="false"/>
     </node>
 
+    <!-- 启动左臂 MPC 节点 -->
+    <node name="arm_mpc_node" pkg="nmpc_ctrl" type="arm_mpc_node" output="screen">
+        <!-- 如果机械臂有单独的 config，也可以在这里加载 -->
+    </node>
+
     <!-- RViz -->
     <node name="rviz" pkg="rviz" type="rviz"
           args="-d $(find nmpc_ctrl)/config/mpc_viz.rviz"/>
+
+    <group ns="mpc_pred">
+        <param name="tf_prefix" value="pred" />
+        <node name="pred_robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+            <!-- 监听上面代码发布的预测关节状态 -->
+            <remap from="/joint_states" to="/mpc_arm_predict/joint_states"/>
+        </node>
+    </group>
+
+    <!-- 建立静态 TF：把虚影机器人的底座(pred/base_link)绑死在真实机器人的(base_link)上 -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="pred_base_link_broadcaster"
+          args="0 0 0 0 0 0 base_link pred/base_link" />
+
 </launch>
