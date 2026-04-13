@@ -1026,7 +1026,7 @@
   </link>
   <joint
     name="left_arm_joint1"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="0 0 0.5236" />
@@ -1084,7 +1084,7 @@
   </link>
   <joint
     name="left_arm_joint2"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="1.5708 0 3.1416" />
@@ -1142,7 +1142,7 @@
   </link>
   <joint
     name="left_arm_joint3"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0.49 0"
       rpy="1.5708 1.0472 3.1416" />
@@ -1200,7 +1200,7 @@
   </link>
   <joint
     name="left_arm_joint4"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="-1.5708 0 0" />
@@ -1259,7 +1259,7 @@
   </link>
   <joint
     name="left_arm_joint5"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 -0.4307 4.6056E-05"
       rpy="-1.5708 0 -3.1416" />
@@ -1317,7 +1317,7 @@
   </link>
   <joint
     name="left_arm_joint6"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="-1.5708 -1.5708 0" />
@@ -1375,7 +1375,7 @@
   </link>
   <joint
     name="left_arm_joint7"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="-1.5708 0 -3.1416" />
@@ -1480,7 +1480,7 @@
   </link>
   <joint
     name="right_arm_joint1"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="0 0 -0.5236" />
@@ -1539,7 +1539,7 @@
   </link>
   <joint
     name="right_arm_joint2"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="-1.5708 0 3.1416" />
@@ -1598,7 +1598,7 @@
   </link>
   <joint
     name="right_arm_joint3"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 -0.49 0"
       rpy="-1.5708 1.0472 3.1416" />
@@ -1657,7 +1657,7 @@
   </link>
   <joint
     name="right_arm_joint4"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="1.5708 0 0" />
@@ -1715,7 +1715,7 @@
   </link>
   <joint
     name="right_arm_joint5"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0.43072 4.6056E-05"
       rpy="-1.5708 0 0" />
@@ -1774,7 +1774,7 @@
   </link>
   <joint
     name="right_arm_joint6"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="-1.5708 -1.5708 0" />
@@ -1832,7 +1832,7 @@
   </link>
   <joint
     name="right_arm_joint7"
-    type="fixed">
+    type="revolute">
     <origin
       xyz="0 0 0"
       rpy="1.5708 0 3.1416" />
@@ -2286,7 +2286,7 @@
   </actuator>
 </transmission>
 
-<!-- <transmission name="left_arm_joint1_trans">
+<transmission name="left_arm_joint1_trans">
   <type>transmission_interface/SimpleTransmission</type>
   <joint name="left_arm_joint1">
     <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
@@ -2361,6 +2361,83 @@
     <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     <mechanicalReduction>1</mechanicalReduction>
   </actuator>
-</transmission> -->
+</transmission>
+
+<transmission name="right_arm_joint1_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="right_arm_joint1">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="right_arm_joint1_motor">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="right_arm_joint2_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="right_arm_joint2">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="right_arm_joint2_motor">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="right_arm_joint3_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="right_arm_joint3">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="right_arm_joint3_motor">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="right_arm_joint4_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="right_arm_joint4">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="right_arm_joint4_motor">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="right_arm_joint5_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="right_arm_joint5">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="right_arm_joint5_motor">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="right_arm_joint6_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="right_arm_joint6">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="right_arm_joint6_motor">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="right_arm_joint7_trans">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="right_arm_joint7">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="right_arm_joint7_motor">
+    <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
 
 </robot>

@@ -38,7 +38,11 @@
                 left_arm_joint1_position_controller left_arm_joint2_position_controller 
                 left_arm_joint3_position_controller left_arm_joint4_position_controller 
                 left_arm_joint5_position_controller left_arm_joint6_position_controller 
-                left_arm_joint7_position_controller"/>
+                left_arm_joint7_position_controller
+                right_arm_joint1_position_controller right_arm_joint2_position_controller 
+                right_arm_joint3_position_controller right_arm_joint4_position_controller 
+                right_arm_joint5_position_controller right_arm_joint6_position_controller 
+                right_arm_joint7_position_controller"/>
 
     <!-- MPC 节点 -->
     <node name="mpc_node" pkg="nmpc_ctrl" type="mpc_node" output="screen">
