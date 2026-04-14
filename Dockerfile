@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y \
     libblas-dev \
     liblapack-dev \
     gfortran \
+    ros-noetic-velocity-controllers \
+    ros-noetic-effort-controllers \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置为清华镜像源

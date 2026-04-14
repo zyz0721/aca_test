@@ -7,10 +7,6 @@
 std::vector<double> current_q(7, 0.0);
 bool state_received = false;
 
-// 全局存储整个机器人的当前关节状态，用于虚影匹配
-std::vector<std::string> current_joint_names;
-std::vector<double> current_joint_positions;
-
 // 订阅关节真实状态
 void jointStateCallback(const sensor_msgs::JointState::ConstPtr& msg) {
     for (size_t i = 0; i < msg->name.size(); ++i) {
@@ -68,9 +64,6 @@ int main(int argc, char **argv) {
         right_pubs[i] = nh.advertise<std_msgs::Float64>("/right_arm_joint" + std::to_string(i+1) + "_position_controller/command", 1);
     }
 
-    // 用于发布预测虚影状态的 Publisher
-    ros::Publisher pred_js_pub = nh.advertise<sensor_msgs::JointState>("/mpc_arm_predict/joint_states", 1);
-
     // 4. 设定目标动作 (让手臂抬起来，例如 joint2 和 joint4 弯曲)
     std::vector<double> target_q = {0.0, -1.0, 0.0, -1.57, 0.0, 0.0, 0.0};
     std::vector<double> target_dq(7, 0.0); // 目标速度为 0
@@ -110,7 +103,7 @@ int main(int argc, char **argv) {
             for (int i = 0; i < cfg.N; i++) solver->set_yref(i, yref.data());
             solver->set_yref(cfg.N, target_q.data()); // Terminal cost reference
 
-            // Acados 求解
+            // Acados 求解！
             if (solver->solve() == 0) {
                 std::vector<double> solver_result_q(7);
                 // 获取求解出来的下一步状态
@@ -133,34 +126,6 @@ int main(int argc, char **argv) {
                     // 下发右臂指令
                     right_pubs[i].publish(cmd_right);
                 }
-
-                // 发布预测虚影
-                sensor_msgs::JointState pred_msg;
-                pred_msg.header.stamp = ros::Time::now();
-                // 拷贝真实的机器人整体状态 (让虚影躯干对齐实车)
-                pred_msg.name = current_joint_names;
-                pred_msg.position = current_joint_positions;
-
-                // 提取未来第 N 步（时域最末端）的状态作为虚影
-                std::vector<double> pred_q_ghost(7);
-                solver->get_x(cfg.N, pred_q_ghost.data()); 
-
-                // 在全状态列表中，把双臂替换成预测的姿态
-                for (size_t i = 0; i < pred_msg.name.size(); ++i) {
-                    std::string name = pred_msg.name[i];
-                    if (name.find("left_arm_joint") != std::string::npos) {
-                        int idx = name.back() - '1';
-                        if (idx >= 0 && idx < 7) pred_msg.position[i] = pred_q_ghost[idx];
-                    } else if (name.find("right_arm_joint") != std::string::npos) {
-                        int idx = name.back() - '1';
-                        if (idx >= 0 && idx < 7) {
-                            if (idx == 0 || idx == 1) pred_msg.position[i] = -pred_q_ghost[idx];
-                            else pred_msg.position[i] = pred_q_ghost[idx];
-                        }
-                    }
-                }
-                pred_js_pub.publish(pred_msg);
-
             }
         }
         rate.sleep();
