@@ -3,6 +3,7 @@ build/
 devel/
 logs/
 build_mujoco/
+galbot_S1_v1.0/meshes/
 
 # catkin_tools 配置 (如果使用 catkin build)
 .catkin_tools/
