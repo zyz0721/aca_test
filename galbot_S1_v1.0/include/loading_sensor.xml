@@ -1,0 +1,85 @@
+<mujoco>
+  <sensor>
+    <!-- Chassis Sensors -->
+    <framepos name="chassis_pos" objtype="body" objname="omni_chassis_base_link"/>
+    <framequat name="chassis_quat" objtype="body" objname="omni_chassis_base_link"/>
+    <framelinvel name="chassis_linvel" objtype="body" objname="omni_chassis_base_link"/>
+    <frameangvel name="chassis_angvel" objtype="body" objname="omni_chassis_base_link"/>
+
+    <!-- End Effector Sensors -->
+    <framepos name="left_arm_eef_pos" objtype="site" objname="left_arm_eef"/>
+    <framequat name="left_arm_eef_quat" objtype="site" objname="left_arm_eef"/>
+    <framelinvel name="left_arm_eef_linvel" objtype="site" objname="left_arm_eef"/>
+    <frameangvel name="left_arm_eef_angvel" objtype="site" objname="left_arm_eef"/>
+
+    <framepos name="right_arm_eef_pos" objtype="site" objname="right_arm_eef"/>
+    <framequat name="right_arm_eef_quat" objtype="site" objname="right_arm_eef"/>
+    <framelinvel name="right_arm_eef_linvel" objtype="site" objname="right_arm_eef"/>
+    <frameangvel name="right_arm_eef_angvel" objtype="site" objname="right_arm_eef"/>
+
+    <force name="left_arm_force" site="left_arm_eef"/>
+    <torque name="left_arm_torque" site="left_arm_eef"/>
+    <force name="right_arm_force" site="right_arm_eef"/>
+    <torque name="right_arm_torque" site="right_arm_eef"/>
+
+    <!-- Joint Positions -->
+    <jointpos name="torso_base_joint_pos" joint="torso_base_joint"/>
+    <jointpos name="head_joint1_pos" joint="head_joint1"/>
+    <jointpos name="head_joint2_pos" joint="head_joint2"/>
+
+    <jointpos name="right_arm_joint1_pos" joint="right_arm_joint1"/>
+    <jointpos name="right_arm_joint2_pos" joint="right_arm_joint2"/>
+    <jointpos name="right_arm_joint3_pos" joint="right_arm_joint3"/>
+    <jointpos name="right_arm_joint4_pos" joint="right_arm_joint4"/>
+    <jointpos name="right_arm_joint5_pos" joint="right_arm_joint5"/>
+    <jointpos name="right_arm_joint6_pos" joint="right_arm_joint6"/>
+    <jointpos name="right_arm_joint7_pos" joint="right_arm_joint7"/>
+    <jointpos name="left_arm_joint1_pos" joint="left_arm_joint1"/>
+    <jointpos name="left_arm_joint2_pos" joint="left_arm_joint2"/>
+    <jointpos name="left_arm_joint3_pos" joint="left_arm_joint3"/>
+    <jointpos name="left_arm_joint4_pos" joint="left_arm_joint4"/>
+    <jointpos name="left_arm_joint5_pos" joint="left_arm_joint5"/>
+    <jointpos name="left_arm_joint6_pos" joint="left_arm_joint6"/>
+    <jointpos name="left_arm_joint7_pos" joint="left_arm_joint7"/>
+
+    <!-- Joint Velocities -->
+    <jointvel name="torso_base_joint_vel" joint="torso_base_joint"/>
+    <jointvel name="head_joint1_vel" joint="head_joint1"/>
+    <jointvel name="head_joint2_vel" joint="head_joint2"/>
+
+    <jointvel name="right_arm_joint1_vel" joint="right_arm_joint1"/>
+    <jointvel name="right_arm_joint2_vel" joint="right_arm_joint2"/>
+    <jointvel name="right_arm_joint3_vel" joint="right_arm_joint3"/>
+    <jointvel name="right_arm_joint4_vel" joint="right_arm_joint4"/>
+    <jointvel name="right_arm_joint5_vel" joint="right_arm_joint5"/>
+    <jointvel name="right_arm_joint6_vel" joint="right_arm_joint6"/>
+    <jointvel name="right_arm_joint7_vel" joint="right_arm_joint7"/>
+    <jointvel name="left_arm_joint1_vel" joint="left_arm_joint1"/>
+    <jointvel name="left_arm_joint2_vel" joint="left_arm_joint2"/>
+    <jointvel name="left_arm_joint3_vel" joint="left_arm_joint3"/>
+    <jointvel name="left_arm_joint4_vel" joint="left_arm_joint4"/>
+    <jointvel name="left_arm_joint5_vel" joint="left_arm_joint5"/>
+    <jointvel name="left_arm_joint6_vel" joint="left_arm_joint6"/>
+    <jointvel name="left_arm_joint7_vel" joint="left_arm_joint7"/>
+
+    <!-- Actuator Forces -->
+    <jointactuatorfrc name="torso_base_joint_frc" joint="torso_base_joint"/>
+    <jointactuatorfrc name="head_joint1_frc" joint="head_joint1"/>
+    <jointactuatorfrc name="head_joint2_frc" joint="head_joint2"/>
+
+    <jointactuatorfrc name="right_arm_joint1_frc" joint="right_arm_joint1"/>
+    <jointactuatorfrc name="right_arm_joint2_frc" joint="right_arm_joint2"/>
+    <jointactuatorfrc name="right_arm_joint3_frc" joint="right_arm_joint3"/>
+    <jointactuatorfrc name="right_arm_joint4_frc" joint="right_arm_joint4"/>
+    <jointactuatorfrc name="right_arm_joint5_frc" joint="right_arm_joint5"/>
+    <jointactuatorfrc name="right_arm_joint6_frc" joint="right_arm_joint6"/>
+    <jointactuatorfrc name="right_arm_joint7_frc" joint="right_arm_joint7"/>
+    <jointactuatorfrc name="left_arm_joint1_frc" joint="left_arm_joint1"/>
+    <jointactuatorfrc name="left_arm_joint2_frc" joint="left_arm_joint2"/>
+    <jointactuatorfrc name="left_arm_joint3_frc" joint="left_arm_joint3"/>
+    <jointactuatorfrc name="left_arm_joint4_frc" joint="left_arm_joint4"/>
+    <jointactuatorfrc name="left_arm_joint5_frc" joint="left_arm_joint5"/>
+    <jointactuatorfrc name="left_arm_joint6_frc" joint="left_arm_joint6"/>
+    <jointactuatorfrc name="left_arm_joint7_frc" joint="left_arm_joint7"/>
+  </sensor>
+</mujoco>

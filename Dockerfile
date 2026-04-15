@@ -20,9 +20,30 @@ RUN apt-get update && apt-get install -y \
     libblas-dev \
     liblapack-dev \
     gfortran \
-    ros-noetic-velocity-controllers \
-    ros-noetic-effort-controllers \
     && rm -rf /var/lib/apt/lists/*
+
+# # ==========================================
+# # 安装 MuJoCo 3.3.0
+# # ==========================================
+# RUN apt-get update && apt-get install -y \
+#     wget \
+#     libgl1-mesa-dev \
+#     libgl1-mesa-glx \
+#     libosmesa6-dev \
+#     libglew-dev \
+#     patchelf \
+#     && rm -rf /var/lib/apt/lists/*
+
+# RUN mkdir -p /root/.mujoco \
+#     && wget https://github.com/google-deepmind/mujoco/releases/download/3.3.0/mujoco-3.3.0-linux-x86_64.tar.gz -O mujoco.tar.gz \
+#     && tar -zxvf mujoco.tar.gz -C /root/.mujoco \
+#     && rm mujoco.tar.gz
+
+# # 配置环境变量
+# ENV MUJOCO_DIR=/root/.mujoco/mujoco-3.3.0
+# ENV LD_LIBRARY_PATH=${MUJOCO_DIR}/lib:${LD_LIBRARY_PATH}
+# # 如果你的宿主机有显卡并配置了 nvidia-docker，推荐使用 EGL 渲染加快仿真速度
+# ENV MUJOCO_GL="egl"
 
 # 设置为清华镜像源
 RUN pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
@@ -63,6 +84,10 @@ WORKDIR /workspace
 
 # 默认加载 ROS 环境
 RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
+# RUN apt-get update && apt-get install -y \
+#     ros-noetic-velocity-controllers \
+#     ros-noetic-effort-controllers \
+#     && rm -rf /var/lib/apt/lists/*
 
 # 默认启动 bash
 CMD ["bash"]

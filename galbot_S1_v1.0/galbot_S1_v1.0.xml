@@ -1,0 +1,336 @@
+<mujoco model="galbot_S1_V1">
+
+  <compiler angle="radian" eulerseq="zyx"/>
+
+  <default>
+    <default class="galbot_S1">
+      <joint stiffness="0" damping="0.1" armature="0.1"/>
+
+      <default class="steer_position">  <!-- 适用于底盘的位置控制，关节限幅，控制限赋，控制增益-->
+        <joint range="-2.965 2.965" limited="true"/>
+        <position kp="100" kv="10" ctrlrange="-2.965 2.965"/>
+      </default>
+
+      <default class="wheel_velocity">  <!-- 适用于底盘的速度控制，关节限幅，控制限赋，控制增益-->
+        <velocity kv="100" ctrlrange="-12.5 12.5"/>  <!-- Hinge Joint：rad/s；Slide Joint：m/s；轮半径8cm，目前速度为1m/s-->
+        <joint limited="false"/>
+      </default>
+
+      <default class="steer_motor">  <!--方向舵机的力矩控制器，需填入实际力矩Nm-->
+        <motor ctrlrange="-100 100"/>
+      </default>
+
+      <default class="galbot_S1_motor">  <!--head/torso/arm的力矩控制器，需填入实际力矩Nm-->
+        <motor gear="1" ctrllimited="true" forcelimited="true" ctrlrange="-6000 6000" forcerange="-6000 6000"/>
+      </default>
+
+      <default class="galbot_S1_position">  <!-- 位置控制，关节限幅，控制限赋，控制增益-->
+        <position kp="4000" kv="300" ctrlrange="-4 4" forcerange="-3000 3000"/>
+      </default>
+
+      <default class="visual">
+        <geom material="default_material" contype="0" conaffinity="0" group="1" density="0"/>
+      </default>
+      <default class="collision">
+        <geom material="collision_material" contype="1" conaffinity="1" group="3" density="0"/>
+      </default>
+      <default class="wheel_geom">
+        <geom contype="1" conaffinity="1" group="3" density="1100" friction="1 0.01 0.01" solref="0.005 1" solimp="0.99 0.999 1e-05"/>
+      </default>
+    </default>
+  </default>
+
+  <statistic meansize="0.186813" extent="2.49116" center="0 0 0"/>
+  <size nconmax="5000" njmax="5000" />
+  <option integrator="implicitfast" />
+
+  <worldbody>
+    <geom name="floor" type="plane" size="0 0 .05" material="grid" condim="3"/>
+    <light name="spotlight" mode="targetbody" target="base_link" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 -6 4" cutoff="30"/>
+    <light name="top" pos="0 0 2" mode="targetbody" target="base_link"/>
+
+    <body name="base_link" pos="0 0 0" childclass="galbot_S1">
+      <freejoint name="floating_base" />
+
+      <!-- Omni Chassis Base -->
+      <body name="omni_chassis_base_link" pos="0 0 0">
+        <inertial pos="0.00665346 0.0284134 0.131751" mass="112.804" fullinertia="3.11573 2.95832 5.74346 1.55322e-05 0.00110989 2.92145e-05" />
+        <geom name="omni_chassis_base_link_visual" type="mesh" mesh="base_link.STL" class="visual" />
+        <geom name="omni_chassis_base_link_collision" pos="0 0 0.1" type="mesh" mesh="base_link_convex_hull.STL" class="collision" />  <!--位置抬高，防止轮子不着地-->
+
+        <!-- Wheel 1 -->
+        <body name="Wheel_1_direction_link" pos="0.247 0.247 0.0535">
+          <joint name="Wheel_1_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
+          <inertial pos="-0.000212742 -0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 -2.66657e-05 -0.00111307" />
+          <geom name="Wheel_1_direction_link_visual" type="mesh" mesh="Wheel_1_direction_link.STL" class="visual" />
+          <geom name="Wheel_1_direction_link_collision" type="mesh" mesh="Wheel_1_direction_link.STL" class="collision" />
+
+          <body name="Wheel_1_drive_link" pos="0 0 0" euler="0 0 -1.5707963267948966">
+            <joint name="Wheel_1_drive_joint" type="hinge" ref="0.0" axis="0 0 1" class="wheel_velocity"/>
+            <inertial pos="-0.000458991 1.86961e-05 -0.000901215" mass="1.57669" fullinertia="0.00316177 0.00319453 0.00479197 -1.46947e-06 1.55292e-05 7.02743e-07" />
+            <geom name="Wheel_1_drive_link_visual" type="mesh" mesh="Wheel_1_drive_link.STL" class="visual" />
+            <geom name="Wheel_1_collision" type="cylinder" size="0.08 0.03" class="wheel_geom"/>
+          </body>
+        </body>
+
+        <!-- Wheel 2 -->
+        <body name="Wheel_2_direction_link" pos="0.247 -0.247 0.0535">
+          <joint name="Wheel_2_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
+          <inertial pos="0.000212742 0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 2.66657e-05 0.00111307" />
+          <geom name="Wheel_2_direction_link_visual" type="mesh" mesh="Wheel_2_direction_link.STL" class="visual" />
+          <geom name="Wheel_2_direction_link_collision" type="mesh" mesh="Wheel_2_direction_link.STL" class="collision" />
+
+          <body name="Wheel_2_drive_link" pos="0 0 0" euler="0 0 -1.5707963267948966">
+            <joint name="Wheel_2_drive_joint" type="hinge" ref="0.0" axis="0 0 1" class="wheel_velocity"/>
+            <inertial pos="-0.000458074 3.45018e-05 0.000901215" mass="1.57669" fullinertia="0.00316255 0.00319375 0.00479197 5.1926e-06 -1.53409e-05 2.49295e-06" />
+            <geom name="Wheel_2_drive_link_visual" type="mesh" mesh="Wheel_2_drive_link.STL" class="visual" />
+            <geom name="Wheel_2_collision" type="cylinder" size="0.08 0.03" class="wheel_geom"/>
+          </body>
+        </body>
+
+        <!-- Wheel 3 -->
+        <body name="Wheel_3_direction_link" pos="-0.247 -0.247 0.0535">
+          <joint name="Wheel_3_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
+          <inertial pos="0.000212742 0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 2.66657e-05 0.00111307" />
+          <geom name="Wheel_3_direction_link_visual" type="mesh" mesh="Wheel_3_direction_link.STL" class="visual" />
+          <geom name="Wheel_3_direction_link_collision" type="mesh" mesh="Wheel_3_direction_link.STL" class="collision" />
+
+          <body name="Wheel_3_drive_link" pos="0 0 0" euler="0 0 -1.5707963267948966">
+            <joint name="Wheel_3_drive_joint" type="hinge" ref="0.0" axis="0 0 1" class="wheel_velocity"/>
+            <inertial pos="6.46723e-05 -0.000454794 0.000901211" mass="1.57669" fullinertia="0.00319449 0.00316181 0.00479197 1.83141e-06 8.59453e-07 -1.55211e-05" />
+            <geom name="Wheel_3_drive_link_visual" type="mesh" mesh="Wheel_3_drive_link.STL" class="visual" />
+            <geom name="Wheel_3_collision" type="cylinder" size="0.08 0.03" class="wheel_geom"/>
+          </body>
+        </body>
+
+        <!-- Wheel 4 -->
+        <body name="Wheel_4_direction_link" pos="-0.247 0.247 0.0535">
+          <joint name="Wheel_4_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
+          <inertial pos="-0.000212742 -0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 -2.66657e-05 -0.00111307" />
+          <geom name="Wheel_4_direction_link_visual" type="mesh" mesh="Wheel_4_direction_link.STL" class="visual" />
+          <geom name="Wheel_4_direction_link_collision" type="mesh" mesh="Wheel_4_direction_link.STL" class="collision" />
+
+          <body name="Wheel_4_drive_link" pos="0 0 0" euler="0 0 -1.5707963267948966">
+            <joint name="Wheel_4_drive_joint" type="hinge" ref="0.0" axis="0 0 1" class="wheel_velocity"/>
+            <inertial pos="-0.000459051 -1.71519e-05 -0.000901215" mass="1.57669" fullinertia="0.0031622 0.0031941 0.00479197 -3.99826e-06 1.54242e-05 1.91094e-06" />
+            <geom name="Wheel_4_drive_link_visual" type="mesh" mesh="Wheel_4_drive_link.STL" class="visual" />
+            <geom name="Wheel_4_collision" type="cylinder" size="0.08 0.03" class="wheel_geom"/>
+          </body>
+        </body>
+
+        <!-- Column Base Link -->
+        <body name="column_base_link" pos="-0.0715 0 0.55441">
+           <inertial pos="0.077164 0.0241903 -0.424409" mass="132.502" fullinertia="7.42533 5.88857 11.0279 0.015635 -0.0374284 -0.111046" />
+           <geom name="column_base_link_visual" type="mesh" mesh="column_base_link2.STL" class="visual"/>
+           <geom name="column_base_link_collision" type="mesh" mesh="column_base_link2_convex_hull.STL" class="collision"/>
+
+           <!-- Torso Base Link -->
+           <body name="torso_base_link" pos="0 0 0">
+             <joint name="torso_base_joint" type="slide" axis="0 0 1" range="0 0.75" />
+             <inertial pos="-0.0496977 -0.00115498 0.0904761" mass="8.4877" fullinertia="0.0668338 0.0300875 0.0499306 -9.38554e-06 5.25239e-05 -0.00111871" />
+             <geom name="torso_base_link_visual" type="mesh" mesh="torso_base_link.STL" class="visual"/>
+             <geom name="torso_base_link_collision" type="mesh" mesh="torso_base_link_convex_hull.STL" class="collision"/>
+
+             <!-- Head Chain -->
+             <body name="torso_head_mount_link" pos="0.1145 0 0.29278">
+                <!-- Head J1 -->
+                <body name="head_Link1" pos="0 0 0">
+                  <joint name="head_joint1" axis="0 0 1" range="-0.7854 0.7854" class="galbot_S1_motor"/>
+                  <inertial pos="-0.045396 -0.012681 -0.0032725" mass="0.33311" fullinertia="0.00027395 0.00031414 0.0003335 -1.2541e-05 3.4491e-05 7.628e-06" />
+                  <geom name="head_Link1_visual" type="mesh" mesh="head_Link1.STL" class="visual"/>
+                  <geom name="head_Link1_collision" type="mesh" mesh="head_Link1_convex_hull.STL" class="collision"/>
+
+                  <!-- Head J2 -->
+                  <body name="head_Link2" pos="-0.052556 0 0" euler="0 0 1.5707963267948966">
+                     <joint name="head_joint2" axis="0 0 1" range="-0.6109 0.6109" class="galbot_S1_motor"/>
+                     <inertial pos="0.082529 -0.092674 -0.0056067" mass="0.65299" fullinertia="0.0023816 0.0018713 0.0017889 9.8473e-05 -0.00011432 0.00022284" />
+                     <geom name="head_Link2_visual" type="mesh" mesh="head_Link2.STL" class="visual"/>
+                     <geom name="head_Link2_collision" type="mesh" mesh="head_Link2_convex_hull.STL" class="collision"/>
+
+                     <body name="head_end_effector_mount_link" pos="0 0 0">
+                       <site name="head_camera_site" pos="0 0 0" />
+                     </body>
+                  </body>
+                </body>
+             </body>
+
+             <!-- Left Arm Chain -->
+             <body name="torso_left_arm_mount_link" pos="0.0985 0.28025 0.16659" euler="3.1416 0 1.309">
+               <inertial pos="-0.0029823 0.068885 -0.27373" mass="12.044" fullinertia="0.40636 0.24141 0.35406 0.018459 0.0060541 -0.02826" />
+<!--               <geom name="torso_left_arm_mount_visual" type="mesh" mesh="torso_left_arm_mount_link.STL" class="visual"/>-->
+
+               <body name="left_arm_base_link" pos="0 0 0">
+                 <inertial pos="1.2955e-05 -3.6917e-05 -0.18618" mass="2.0214" fullinertia="0.0050263 0.0050547 0.0053318 -2.4938e-07 -1.2509e-06 -2.5229e-06" />
+                 <geom name="left_arm_base_link_visual" type="mesh" mesh="S1_left_arm_base_link.STL" class="visual"/>
+                 <geom name="left_arm_base_link_collision" type="mesh" mesh="S1_left_arm_base_link_convex_hull.STL" class="collision"/>
+
+                 <body name="left_arm_link1" pos="0 0 0" euler="0.5236 0 0">
+                    <joint name="left_arm_joint1" axis="0 0 1" range="-2.9671 2.9671" class="galbot_S1_motor"/>
+                    <inertial pos="-4.4056e-06 0.010421 -0.030155" mass="1.6782" fullinertia="0.0041684 0.0052493 0.0041315 -0.00010233 -8.2402e-07 -0.0001273" />
+                    <geom name="left_arm_link1_visual" type="mesh" mesh="S1_left_arm_link_1.STL" class="visual"/>
+                    <geom name="left_arm_link1_collision" type="mesh" mesh="S1_left_arm_link_1_convex_hull.STL" class="collision"/>
+
+                    <body name="left_arm_link2" pos="0 0 0" euler="3.1416 0 1.5707963267948966">
+                       <joint name="left_arm_joint2" axis="0 0 1" range="-2.007 1.7453" class="galbot_S1_motor"/>
+                       <inertial pos="-0.00345011 0.137579 0.000941371" mass="1.61191" fullinertia="0.00746184 0.00464259 0.00647553 5.29645e-05 -5.83302e-05 0.00127268" />
+                       <geom name="left_arm_link2_visual" type="mesh" mesh="S1_left_arm_link_2.STL" class="visual"/>
+                       <geom name="left_arm_link2_collision" type="mesh" mesh="S1_left_arm_link_2_convex_hull.STL" class="collision"/>
+
+                       <body name="left_arm_link3" pos="0 0.49 0" euler="3.1416 1.0472 1.5707963267948966">
+                         <joint name="left_arm_joint3" axis="0 0 1" range="-2.9496 2.9496" class="galbot_S1_motor"/>
+                         <inertial pos="0.0055631 0.0047021 -0.073122" mass="1.5707963267948966" fullinertia="0.0062978 0.0067717 0.002835 -6.4139e-06 0.00019319 -0.00024069" />
+                         <geom name="left_arm_link3_visual" type="mesh" mesh="S1_left_arm_link_3.STL" class="visual"/>
+                         <geom name="left_arm_link3_collision" type="mesh" mesh="S1_left_arm_link_3_convex_hull.STL" class="collision"/>
+
+                         <body name="left_arm_link4" pos="0 0 0" euler="0 0 -1.5707963267948966">
+                           <joint name="left_arm_joint4" axis="0 0 1" range="-2.618 1.92" class="galbot_S1_motor"/>
+                           <inertial pos="-3.8512e-06 -0.10045 0.0022227" mass="0.8579" fullinertia="0.0025792 0.0016987 0.0021546 -3.9535e-07 4.94e-07 -0.00043511" />
+                           <geom name="left_arm_link4_visual" type="mesh" mesh="S1_left_arm_link_4.STL" class="visual"/>
+                           <geom name="left_arm_link4_collision" type="mesh" mesh="S1_left_arm_link_4_convex_hull.STL" class="collision"/>
+
+                           <body name="left_arm_link5" pos="0 -0.4307 4.6056e-05" euler="-3.1416 0 -1.5707963267948966">
+                             <joint name="left_arm_joint5" axis="0 0 1" range="-2.9496 2.9496" class="galbot_S1_motor"/>
+                             <inertial pos="0.001201 0.00724301 -0.153759" mass="0.856081" fullinertia="0.00204386 0.00188726 0.000992021 6.25579e-06 1.11817e-05 -0.00021884" />
+                             <geom name="left_arm_link5_visual" type="mesh" mesh="S1_left_arm_link_5.STL" class="visual"/>
+                             <geom name="left_arm_link5_collision" type="mesh" mesh="S1_left_arm_link_5_convex_hull.STL" class="collision"/>
+
+                             <body name="left_arm_link6" pos="0 0 0" euler="0 -1.5707963267948966 -1.5707963267948966">
+                               <joint name="left_arm_joint6" axis="0 0 1" range="-0.7854 0.7854" class="galbot_S1_motor"/>
+                               <inertial pos="0.000205953 -0.00495236 3.84411e-05" mass="0.405314" fullinertia="0.000384854 0.000441985 0.000376661 -6.34613e-07 3.02627e-06 -2.73449e-06" />
+                               <geom name="left_arm_link6_visual" type="mesh" mesh="S1_left_arm_link_6.STL" class="visual"/>
+                               <geom name="left_arm_link6_collision" type="mesh" mesh="S1_left_arm_link_6_convex_hull.STL" class="collision"/>
+
+                               <body name="left_arm_link7" pos="0 0 0" euler="-3.1416 0 -1.5707963267948966">
+                                 <joint name="left_arm_joint7" axis="0 0 1" range="-1.5882 1.5882" class="galbot_S1_motor"/>
+                                 <inertial pos="-0.0897462 0.0110172 0.0187557" mass="0.341971" fullinertia="0.000279068 0.000415635 0.000371118 -8.14228e-07 -7.76398e-05 -3.01302e-06" />
+                                 <geom name="left_arm_link7_visual" type="mesh" mesh="S1_left_arm_link_7.STL" class="visual"/>
+                                 <geom name="left_arm_link7_collision" type="mesh" mesh="S1_left_arm_link_7_convex_hull.STL" class="collision"/>
+
+                                 <body name="left_arm_end_effector_mount_link" pos="-0.135 0 0" euler="3.1416 0 -3.1416">
+                                   <site name="left_arm_eef" pos="0 0 0"/>
+                                   <inertial pos="-0.805488 0.00216531 0.000228019" mass="30.7209" fullinertia="0.0792292 4.52435 4.52306 0.0070117 0.0340611 -0.00329968" />
+<!--                                   <geom name="left_arm_eef_visual" type="mesh" mesh="S1_left_arm_end_effector_mount_link.STL" class="visual"/>-->
+                                 </body>
+                               </body>
+                             </body>
+                           </body>
+                         </body>
+                       </body>
+                    </body>
+                 </body>
+               </body>
+             </body>
+
+             <!-- Right Arm Chain -->
+             <body name="torso_right_arm_mount_link" pos="0.0985 -0.28025 0.16659" euler="3.1416 0 -1.309">
+               <inertial pos="-0.0029823 -0.067855 -0.26989" mass="12.044" fullinertia="0.40636 0.2451 0.35037 -0.019013 0.0039866 0.034647" />
+<!--               <geom name="torso_right_arm_mount_visual" type="mesh" mesh="torso_right_arm_mount_link.STL" class="visual"/>-->
+
+               <body name="right_arm_base_link" pos="0 0 0">
+                 <inertial pos="-1.29552e-05 3.69173e-05 -0.186181" mass="2.02135" fullinertia="0.0050263 0.00505468 0.00533183 -2.49382e-07 1.25089e-06 2.52293e-06" />
+                 <geom name="right_arm_base_link_visual" type="mesh" mesh="S1_right_arm_base_link.STL" class="visual"/>
+                 <geom name="right_arm_base_link_collision" type="mesh" mesh="S1_right_arm_base_link_convex_hull.STL" class="collision"/>
+
+                 <body name="right_arm_link1" pos="0 0 0" euler="-0.5236 0 0">
+                    <joint name="right_arm_joint1" axis="0 0 1" range="-2.9671 2.9671" class="galbot_S1_motor"/>
+                    <inertial pos="4.41589e-06 -0.0104207 -0.0301549" mass="1.67819" fullinertia="0.00416841 0.00524928 0.00413151 -0.000102328 8.23905e-07 0.000127305" />
+                    <geom name="right_arm_link1_visual" type="mesh" mesh="S1_right_arm_link_1.STL" class="visual"/>
+                    <geom name="right_arm_link1_collision" type="mesh" mesh="S1_right_arm_link_1_convex_hull.STL" class="collision"/>
+
+                    <body name="right_arm_link2" pos="0 0 0" euler="3.1416 0 -1.5707963267948966">
+                       <joint name="right_arm_joint2" axis="0 0 1" range="-1.7453 2.007" class="galbot_S1_motor"/>
+                       <inertial pos="-0.00339443 -0.137567 0.00100732" mass="1.61262" fullinertia="0.00746064 0.0046425 0.00647609 -5.32978e-05 -5.98917e-05 -0.00127298" />
+                       <geom name="right_arm_link2_visual" type="mesh" mesh="S1_right_arm_link_2.STL" class="visual"/>
+                       <geom name="right_arm_link2_collision" type="mesh" mesh="S1_right_arm_link_2_convex_hull.STL" class="collision"/>
+
+                       <body name="right_arm_link3" pos="0 -0.49 0" euler="3.1416 1.0472 -1.5707963267948966">
+                         <joint name="right_arm_joint3" axis="0 0 1" range="-2.9496 2.9496" class="galbot_S1_motor"/>
+                         <inertial pos="0.00559844 -0.00496184 -0.0733741" mass="1.58036" fullinertia="0.00634185 0.00677681 0.00285387 2.93823e-06 0.000194381 0.000228567" />
+                         <geom name="right_arm_link3_visual" type="mesh" mesh="S1_right_arm_link_3.STL" class="visual"/>
+                         <geom name="right_arm_link3_collision" type="mesh" mesh="S1_right_arm_link_3_convex_hull.STL" class="collision"/>
+
+                         <body name="right_arm_link4" pos="0 0 0" euler="0 0 1.5707963267948966">
+                           <joint name="right_arm_joint4" axis="0 0 1" range="-1.92 2.618" class="galbot_S1_motor"/>
+                           <inertial pos="3.11372e-06 0.10045 0.00222271" mass="0.857837" fullinertia="0.00257913 0.00169864 0.00215456 -4.29153e-07 -4.39435e-07 0.000435107" />
+                           <geom name="right_arm_link4_visual" type="mesh" mesh="S1_right_arm_link_4.STL" class="visual"/>
+                           <geom name="right_arm_link4_collision" type="mesh" mesh="S1_right_arm_link_4_convex_hull.STL" class="collision"/>
+
+                           <body name="right_arm_link5" pos="0 0.43072 4.6056e-05" euler="0 0 -1.5707963267948966">
+                             <joint name="right_arm_joint5" axis="0 0 1" range="-2.9496 2.9496" class="galbot_S1_motor"/>
+                             <inertial pos="-0.0012268 0.00731019 -0.152852" mass="0.862472" fullinertia="0.00204311 0.00188767 0.000993243 -4.65577e-06 -1.18604e-05 -0.000219076" />
+                             <geom name="right_arm_link5_visual" type="mesh" mesh="S1_right_arm_link_5.STL" class="visual"/>
+                             <geom name="right_arm_link5_collision" type="mesh" mesh="S1_right_arm_link_5_convex_hull.STL" class="collision"/>
+
+                             <body name="right_arm_link6" pos="0 0 0" euler="0 -1.5707963267948966 -1.5707963267948966">
+                               <joint name="right_arm_joint6" axis="0 0 1" range="-0.7854 0.7854" class="galbot_S1_motor"/>
+                               <inertial pos="0.000237711 0.00500175 0.000203337" mass="0.401238" fullinertia="0.000384725 0.00044179 0.000376228 6.76254e-07 3.41045e-06 3.31974e-06" />
+                               <geom name="right_arm_link6_visual" type="mesh" mesh="S1_right_arm_link_6.STL" class="visual"/>
+                               <geom name="right_arm_link6_collision" type="mesh" mesh="S1_right_arm_link_6_convex_hull.STL" class="collision"/>
+
+                               <body name="right_arm_link7" pos="0 0 0" euler="3.1416 0 1.5707963267948966">
+                                 <joint name="right_arm_joint7" axis="0 0 1" range="-1.5882 1.5882" class="galbot_S1_motor"/>
+                                 <inertial pos="-0.0898815 -0.0110675 0.018748" mass="0.344021" fullinertia="0.000279126 0.00041596 0.000371648 8.28128e-07 -7.7689e-05 2.96899e-06" />
+                                 <geom name="right_arm_link7_visual" type="mesh" mesh="S1_right_arm_link_7.STL" class="visual"/>
+                                 <geom name="right_arm_link7_collision" type="mesh" mesh="S1_right_arm_link_7_convex_hull.STL" class="collision"/>
+
+                                 <body name="right_arm_end_effector_mount_link" pos="-0.135 0 0" euler="3.1416 0 3.1416">
+                                   <site name="right_arm_eef" pos="0 0 0"/>
+                                   <inertial pos="-0.804889 -0.00216146 0.000262276" mass="30.7794" fullinertia="0.0794398 4.53597 4.53466 -0.00721341 0.0344132 0.00326674" />
+<!--                                   <geom name="right_arm_eef_visual" type="mesh" mesh="right_arm_end_effector_mount_link.STL" class="visual"/>-->
+                                 </body>
+                               </body>
+                             </body>
+                           </body>
+                         </body>
+                       </body>
+                    </body>
+                 </body>
+               </body>
+             </body>
+
+           </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- Chassis -->
+    <position name="Wheel_1_direction_joint" joint="Wheel_1_direction_joint" class="steer_motor"/>
+    <velocity name="Wheel_1_drive_joint" joint="Wheel_1_drive_joint" class="wheel_velocity"/>
+    <position name="Wheel_2_direction_joint" joint="Wheel_2_direction_joint" class="steer_motor"/>
+    <velocity name="Wheel_2_drive_joint" joint="Wheel_2_drive_joint" class="wheel_velocity"/>
+    <position name="Wheel_3_direction_joint" joint="Wheel_3_direction_joint" class="steer_motor"/>
+    <velocity name="Wheel_3_drive_joint" joint="Wheel_3_drive_joint" class="wheel_velocity"/>
+    <position name="Wheel_4_direction_joint" joint="Wheel_4_direction_joint" class="steer_motor"/>
+    <velocity name="Wheel_4_drive_joint" joint="Wheel_4_drive_joint" class="wheel_velocity"/>
+
+    <position name="torso_base_joint" joint="torso_base_joint" kp="10000" kv="1000" ctrlrange="0 0.75" forcerange="-6000 6000" />
+    <position name="head_joint1" joint="head_joint1" class="galbot_S1_position" />
+    <position name="head_joint2" joint="head_joint2" class="galbot_S1_position" />
+
+
+    <position name="right_arm_joint1" joint="right_arm_joint1" class="galbot_S1_position" />
+    <position name="right_arm_joint2" joint="right_arm_joint2" class="galbot_S1_position" />
+    <position name="right_arm_joint3" joint="right_arm_joint3" class="galbot_S1_position" />
+    <position name="right_arm_joint4" joint="right_arm_joint4" class="galbot_S1_position" />
+    <position name="right_arm_joint5" joint="right_arm_joint5" class="galbot_S1_position" />
+    <position name="right_arm_joint6" joint="right_arm_joint6" class="galbot_S1_position" />
+    <position name="right_arm_joint7" joint="right_arm_joint7" class="galbot_S1_position" />
+
+    <position name="left_arm_joint1" joint="left_arm_joint1" class="galbot_S1_position" />
+    <position name="left_arm_joint2" joint="left_arm_joint2" class="galbot_S1_position" />
+    <position name="left_arm_joint3" joint="left_arm_joint3" class="galbot_S1_position" />
+    <position name="left_arm_joint4" joint="left_arm_joint4" class="galbot_S1_position" />
+    <position name="left_arm_joint5" joint="left_arm_joint5" class="galbot_S1_position" />
+    <position name="left_arm_joint6" joint="left_arm_joint6" class="galbot_S1_position" />
+    <position name="left_arm_joint7" joint="left_arm_joint7" class="galbot_S1_position" />
+
+  </actuator>
+
+
+  <include file="include/loading_asset.xml" />
+  <include file="include/contact_exclude.xml"/>
+  <include file="include/loading_sensor.xml"/>
+
+</mujoco>

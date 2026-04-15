@@ -1,0 +1,46 @@
+<mujoco>
+  <contact>
+    <!-- Wheel Direction excludes -->
+    <exclude body1="omni_chassis_base_link" body2="Wheel_1_direction_link" />
+    <exclude body1="omni_chassis_base_link" body2="Wheel_2_direction_link" />
+    <exclude body1="omni_chassis_base_link" body2="Wheel_3_direction_link" />
+    <exclude body1="omni_chassis_base_link" body2="Wheel_4_direction_link" />
+
+    <!-- Wheel Drive excludes -->
+    <exclude body1="Wheel_1_direction_link" body2="Wheel_1_drive_link" />
+    <exclude body1="Wheel_2_direction_link" body2="Wheel_2_drive_link" />
+    <exclude body1="Wheel_3_direction_link" body2="Wheel_3_drive_link" />
+    <exclude body1="Wheel_4_direction_link" body2="Wheel_4_drive_link" />
+
+    <exclude body1="omni_chassis_base_link" body2="Wheel_1_drive_link" />
+    <exclude body1="omni_chassis_base_link" body2="Wheel_2_drive_link" />
+    <exclude body1="omni_chassis_base_link" body2="Wheel_3_drive_link" />
+    <exclude body1="omni_chassis_base_link" body2="Wheel_4_drive_link" />
+
+    <!-- Arm Excludes -->
+    <exclude body1="left_arm_base_link" body2="left_arm_link1" />
+    <exclude body1="left_arm_link1" body2="left_arm_link2" />
+    <exclude body1="left_arm_link2" body2="left_arm_link3" />
+    <exclude body1="left_arm_link3" body2="left_arm_link4" />
+    <exclude body1="left_arm_link4" body2="left_arm_link5" />
+    <exclude body1="left_arm_link5" body2="left_arm_link6" />
+    <exclude body1="left_arm_link6" body2="left_arm_link7" />
+    <exclude body1="right_arm_base_link" body2="right_arm_link1" />
+    <exclude body1="right_arm_link1" body2="right_arm_link2" />
+    <exclude body1="right_arm_link2" body2="right_arm_link3" />
+    <exclude body1="right_arm_link3" body2="right_arm_link4" />
+    <exclude body1="right_arm_link4" body2="right_arm_link5" />
+    <exclude body1="right_arm_link5" body2="right_arm_link6" />
+    <exclude body1="right_arm_link6" body2="right_arm_link7" />
+
+    <!-- Self Collision Excludes between Arms and Chassis -->
+    <exclude body1="omni_chassis_base_link" body2="right_arm_link1" />
+    <exclude body1="omni_chassis_base_link" body2="left_arm_link1" />
+    <exclude body1="omni_chassis_base_link" body2="right_arm_link3" />
+    <exclude body1="omni_chassis_base_link" body2="left_arm_link3" />
+    <exclude body1="omni_chassis_base_link" body2="right_arm_link2" />
+    <exclude body1="omni_chassis_base_link" body2="left_arm_link2" />
+    <exclude body1="right_arm_link5" body2="right_arm_link7" />
+    <exclude body1="left_arm_link5" body2="left_arm_link7" />
+  </contact>
+</mujoco>

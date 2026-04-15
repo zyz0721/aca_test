@@ -1,0 +1,74 @@
+<mujoco>
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1=".1 .2 .3" rgb2=".2 .3 .4"/>
+    <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
+
+    <material name="default_material" rgba="0.7 0.7 0.7 1" />
+    <material name="collision_material" rgba="1.0 0.28 0.1 0.9" />
+
+    <mesh name="base_link_convex_hull.STL" file="../meshes/convex_hull/base_link_convex_hull.STL" />
+    <mesh name="base_link.STL" file="../meshes/base_link.STL" />
+
+    <!-- Wheels 1-4 -->
+    <mesh name="Wheel_1_direction_link.STL" file="../meshes/Wheel_1_direction_link.STL" />
+    <mesh name="Wheel_1_drive_link.STL" file="../meshes/Wheel_1_drive_link.STL" />
+    <mesh name="Wheel_2_direction_link.STL" file="../meshes/Wheel_2_direction_link.STL" />
+    <mesh name="Wheel_2_drive_link.STL" file="../meshes/Wheel_2_drive_link.STL" />
+    <mesh name="Wheel_3_direction_link.STL" file="../meshes/Wheel_3_direction_link.STL" />
+    <mesh name="Wheel_3_drive_link.STL" file="../meshes/Wheel_3_drive_link.STL" />
+    <mesh name="Wheel_4_direction_link.STL" file="../meshes/Wheel_4_direction_link.STL" />
+    <mesh name="Wheel_4_drive_link.STL" file="../meshes/Wheel_4_drive_link.STL" />
+
+    <mesh name="column_base_link2_convex_hull.STL" file="../meshes/convex_hull/column_base_link2_convex_hull.STL" />
+    <mesh name="column_base_link2.STL" file="../meshes/column_base_link2.STL" />
+
+    <mesh name="torso_base_link_convex_hull.STL" file="../meshes/convex_hull/torso_base_link_convex_hull.STL" />
+    <mesh name="torso_base_link.STL" file="../meshes/torso_base_link.STL" />
+
+    <!-- Head -->
+    <mesh name="head_Link1_convex_hull.STL" file="../meshes/convex_hull/head_Link1_convex_hull.STL" />
+    <mesh name="head_Link1.STL" file="../meshes/head_Link1.STL" />
+    <mesh name="head_Link2_convex_hull.STL" file="../meshes/convex_hull/head_Link2_convex_hull.STL" />
+    <mesh name="head_Link2.STL" file="../meshes/head_Link2.STL" />
+
+    <!-- Right Arm -->
+<!--    <mesh name="torso_right_arm_mount_link.STL" file="../meshes/torso_right_arm_mount_link.STL" />-->
+    <mesh name="S1_right_arm_base_link_convex_hull.STL" file="../meshes/convex_hull/S1_right_arm_base_link_convex_hull.STL" />
+    <mesh name="S1_right_arm_base_link.STL" file="../meshes/S1_right_arm_base_link.STL" />
+    <mesh name="S1_right_arm_link_1_convex_hull.STL" file="../meshes/convex_hull/S1_right_arm_link_1_convex_hull.STL" />
+    <mesh name="S1_right_arm_link_1.STL" file="../meshes/S1_right_arm_link_1.STL" />
+    <mesh name="S1_right_arm_link_2_convex_hull.STL" file="../meshes/convex_hull/S1_right_arm_link_2_convex_hull.STL" />
+    <mesh name="S1_right_arm_link_2.STL" file="../meshes/S1_right_arm_link_2.STL" />
+    <mesh name="S1_right_arm_link_3_convex_hull.STL" file="../meshes/convex_hull/S1_right_arm_link_3_convex_hull.STL" />
+    <mesh name="S1_right_arm_link_3.STL" file="../meshes/S1_right_arm_link_3.STL" />
+    <mesh name="S1_right_arm_link_4_convex_hull.STL" file="../meshes/convex_hull/S1_right_arm_link_4_convex_hull.STL" />
+    <mesh name="S1_right_arm_link_4.STL" file="../meshes/S1_right_arm_link_4.STL" />
+    <mesh name="S1_right_arm_link_5_convex_hull.STL" file="../meshes/convex_hull/S1_right_arm_link_5_convex_hull.STL" />
+    <mesh name="S1_right_arm_link_5.STL" file="../meshes/S1_right_arm_link_5.STL" />
+    <mesh name="S1_right_arm_link_6_convex_hull.STL" file="../meshes/convex_hull/S1_right_arm_link_6_convex_hull.STL" />
+    <mesh name="S1_right_arm_link_6.STL" file="../meshes/S1_right_arm_link_6.STL" />
+    <mesh name="S1_right_arm_link_7_convex_hull.STL" file="../meshes/convex_hull/S1_right_arm_link_7_convex_hull.STL" />
+    <mesh name="S1_right_arm_link_7.STL" file="../meshes/S1_right_arm_link_7.STL" />
+<!--    <mesh name="right_arm_end_effector_mount_link.STL" file="../meshes/right_arm_end_effector_mount_link.STL" />-->
+
+    <!-- Left Arm -->
+<!--    <mesh name="torso_left_arm_mount_link.STL" file="../meshes/torso_left_arm_mount_link.STL" />-->
+    <mesh name="S1_left_arm_base_link_convex_hull.STL" file="../meshes/convex_hull/S1_left_arm_base_link_convex_hull.STL" />
+    <mesh name="S1_left_arm_base_link.STL" file="../meshes/S1_left_arm_base_link.STL" />
+    <mesh name="S1_left_arm_link_1_convex_hull.STL" file="../meshes/convex_hull/S1_left_arm_link_1_convex_hull.STL" />
+    <mesh name="S1_left_arm_link_1.STL" file="../meshes/S1_left_arm_link_1.STL" />
+    <mesh name="S1_left_arm_link_2_convex_hull.STL" file="../meshes/convex_hull/S1_left_arm_link_2_convex_hull.STL" />
+    <mesh name="S1_left_arm_link_2.STL" file="../meshes/S1_left_arm_link_2.STL" />
+    <mesh name="S1_left_arm_link_3_convex_hull.STL" file="../meshes/convex_hull/S1_left_arm_link_3_convex_hull.STL" />
+    <mesh name="S1_left_arm_link_3.STL" file="../meshes/S1_left_arm_link_3.STL" />
+    <mesh name="S1_left_arm_link_4_convex_hull.STL" file="../meshes/convex_hull/S1_left_arm_link_4_convex_hull.STL" />
+    <mesh name="S1_left_arm_link_4.STL" file="../meshes/S1_left_arm_link_4.STL" />
+    <mesh name="S1_left_arm_link_5_convex_hull.STL" file="../meshes/convex_hull/S1_left_arm_link_5_convex_hull.STL" />
+    <mesh name="S1_left_arm_link_5.STL" file="../meshes/S1_left_arm_link_5.STL" />
+    <mesh name="S1_left_arm_link_6_convex_hull.STL" file="../meshes/convex_hull/S1_left_arm_link_6_convex_hull.STL" />
+    <mesh name="S1_left_arm_link_6.STL" file="../meshes/S1_left_arm_link_6.STL" />
+    <mesh name="S1_left_arm_link_7_convex_hull.STL" file="../meshes/convex_hull/S1_left_arm_link_7_convex_hull.STL" />
+    <mesh name="S1_left_arm_link_7.STL" file="../meshes/S1_left_arm_link_7.STL" />
+<!--    <mesh name="S1_left_arm_end_effector_mount_link.STL" file="../meshes/S1_left_arm_end_effector_mount_link.STL" />-->
+  </asset>
+</mujoco>
