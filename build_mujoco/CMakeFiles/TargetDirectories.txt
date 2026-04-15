@@ -1,3 +1,0 @@
-/home/galbot/galbot_ws/aca_test/build_mujoco/CMakeFiles/mujoco_sim_run.dir
-/home/galbot/galbot_ws/aca_test/build_mujoco/CMakeFiles/edit_cache.dir
-/home/galbot/galbot_ws/aca_test/build_mujoco/CMakeFiles/rebuild_cache.dir
