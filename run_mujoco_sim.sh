@@ -32,7 +32,7 @@ if [ $? -eq 0 ]; then
     echo "==> Build successful! Starting MuJoCo Simulation..."
     # 确保在运行可执行文件时，相对路径是正确的，因此我们在 aca_test 根目录下运行它
     cd .. 
-    ./build_mujoco/mujoco_sim_run
+    ./build_mujoco/mujoco_sim_run /home/galbot/galbot_ws/aca_test/galbot_S1_v1.0/galbot_S1_v1.0.xml
 else
     echo "==> Build failed. Please check the errors above."
 fi

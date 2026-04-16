@@ -27,7 +27,10 @@ include_directories(
 link_directories(${ACADOS_DIR}/lib)
 
 # MuJoCo
-include_directories(${MUJOCO_DIR}/include)
+include_directories(
+    ${MUJOCO_DIR}/include
+    ${MUJOCO_DIR}/simulate  # 包含 simulate.h 等 UI 头文件
+)
 link_directories(${MUJOCO_DIR}/lib)
 
 # ==========================================
@@ -35,6 +38,17 @@ link_directories(${MUJOCO_DIR}/lib)
 # ==========================================
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED) 
+
+# ==========================================
+# 修复 lodepng 依赖
+# ==========================================
+set(LODEPNG_DIR "${CMAKE_BINARY_DIR}/third_party/lodepng")
+if(NOT EXISTS "${LODEPNG_DIR}/lodepng.h")
+    message(STATUS "Downloading missing lodepng for MuJoCo Simulate UI...")
+    file(DOWNLOAD "https://raw.githubusercontent.com/lvandeve/lodepng/master/lodepng.h" "${LODEPNG_DIR}/lodepng.h")
+    file(DOWNLOAD "https://raw.githubusercontent.com/lvandeve/lodepng/master/lodepng.cpp" "${LODEPNG_DIR}/lodepng.cpp")
+endif()
+include_directories(${LODEPNG_DIR}) # 让 simulate.cc 能找到 lodepng.h
 
 # ==========================================
 # 4. 引入本项目(aca_test)的头文件
@@ -53,13 +67,28 @@ file(GLOB NMPC_SRC
     "src/nmpc_ctrl/src/mpc_solver.cpp"
 )
 
+# 收集 MuJoCo 原版 UI界面的源文件
+set(MUJOCO_SIMULATE_SRC
+    ${MUJOCO_DIR}/simulate/simulate.cc
+    ${MUJOCO_DIR}/simulate/glfw_dispatch.cc
+    ${MUJOCO_DIR}/simulate/platform_ui_adapter.cc
+    ${MUJOCO_DIR}/simulate/glfw_adapter.cc
+    ${LODEPNG_DIR}/lodepng.cpp
+)
+
 # ==========================================
 # 6. 生成可执行文件
 # ==========================================
 # 将新的 mujoco_nmpc_sim.cpp 作为 main 函数所在文件
-add_executable(mujoco_sim_run 
-    src/nmpc_ctrl/src/mujoco_nmpc_sim.cpp 
+# add_executable(mujoco_sim_run 
+#     src/nmpc_ctrl/src/mujoco_nmpc_sim.cpp 
+#     ${NMPC_SRC}
+#     ${MUJOCO_SIMULATE_SRC}        # MuJoCo 原版界面源码
+# )
+add_executable(mujoco_sim_run
+    ${MUJOCO_DIR}/simulate/main.cc
     ${NMPC_SRC}
+    ${MUJOCO_SIMULATE_SRC}        # MuJoCo 原版界面源码
 )
 
 # 链接所有的动态链接库
