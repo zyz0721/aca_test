@@ -1,64 +1,159 @@
 #include "mujoco_nmpc_sim.h"
 #include <iostream>
 #include <vector>
+#include <memory>
+#include <cmath>
 
-// 用一个静态指针记录当前绑定的模型，用来检测用户是否在UI里重新加载了模型
+// 引入你的 NMPC 框架头文件 (路径需确保 CMakeLists 中包含正确)
+#include "ocp_core/OcpProblem.h"
+#include "robot_models/ArmDynamics.h"
+
+// 全局静态变量管理
 static const mjModel* cached_model = nullptr;
+static std::unique_ptr<MPCSolver> mpc_solver;
+static std::unique_ptr<AcadosWrapper> mpc_wrapper; // 必须保持其生命周期
 
-struct RobotHardwareIDs {
-    int left_arm_j1_qpos_adr;
-    int wheel_1_vel_dof_adr;
-    int left_arm_j1_ctrl_id;
-    int wheel_1_steer_ctrl_id;
-    int wheel_1_drive_ctrl_id;
+// 存储硬件在 MuJoCo 内存数组中的索引
+struct HardwareIDs {
+    int left_qpos_adr[7];
+    int left_ctrl_id[7];
+    int right_ctrl_id[7]; // 用于镜像下发右臂控制
 };
-static RobotHardwareIDs hw_ids;
+static HardwareIDs hw_ids;
 
-// 只在模型加载时执行一次的初始化
+// MPC 运行频率控制
+static double last_mpc_time = -1.0;
+static const double MPC_DT = 0.02; // 50Hz = 0.02s
+static std::vector<double> last_cmd_q(7, 0.0); // 缓存上一次的控制目标
+
+// ======================= 初始化 NMPC =======================
 void init_nmpc(const mjModel* m, mjData* d) {
-    std::cout << "\n[NMPC] Detected new MuJoCo model, Initializing NMPC Solver..." << std::endl;
+    std::cout << "\n[NMPC] Initializing Acados/CasADi Solver for MuJoCo..." << std::endl;
 
-    // 1. 在这里初始化或重置你的 Acados / CasADi 求解器
-    // mpc_solver = std::make_unique<AcadosWrapper>(...);
+    // 1. 获取模型中左右臂的内存地址 ID
+    for (int i = 0; i < 7; ++i) {
+        std::string left_name = "left_arm_joint" + std::to_string(i+1);
+        std::string right_name = "right_arm_joint" + std::to_string(i+1);
 
-    // 2. 查找你在 galbot_S1_v1.0.xml 中定义的各类控制器的 ID
-    // 假设 XML 中有 <position name="left_arm_joint1" ...>
-    hw_ids.left_arm_j1_ctrl_id = mj_name2id(m, mjOBJ_ACTUATOR, "left_arm_joint1"); 
-    
-    // 假设 XML 中有控制轮子的驱动
-    hw_ids.wheel_1_steer_ctrl_id = mj_name2id(m, mjOBJ_ACTUATOR, "steer_joint_1"); 
-    hw_ids.wheel_1_drive_ctrl_id = mj_name2id(m, mjOBJ_ACTUATOR, "drive_joint_1");
+        int left_jnt_id = mj_name2id(m, mjOBJ_JOINT, left_name.c_str());
+        hw_ids.left_qpos_adr[i] = (left_jnt_id >= 0) ? m->jnt_qposadr[left_jnt_id] : -1;
 
-    if (hw_ids.left_arm_j1_ctrl_id < 0) {
-        std::cerr << "[NMPC WARNING] Actuator 'left_arm_joint1' not found in XML!" << std::endl;
+        hw_ids.left_ctrl_id[i]  = mj_name2id(m, mjOBJ_ACTUATOR, left_name.c_str());
+        hw_ids.right_ctrl_id[i] = mj_name2id(m, mjOBJ_ACTUATOR, right_name.c_str());
     }
 
-    std::cout << "[NMPC] Initialization complete. Ready to control." << std::endl;
+    // 2. 配置求解器 (完全复刻你 arm_mpc_node.cpp 的配置)
+    SolverConfig cfg;
+    cfg.nx = 7; cfg.nu = 7; cfg.N = 20; cfg.T = 1.0; cfg.hz = 50.0;
+    // 权重：优先逼近目标角度 (Q)，同时限制速度不要太大 (R)
+    cfg.W = {10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,  
+              0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1}; 
+
+    // 3. 构建 OCP 问题
+    using S = StageSelector;
+    using B = BoundConstraintData;
+    OcpProblem ocp(cfg);
+    ocp.setDynamics<ArmDynamics>();
+    
+    std::vector<int> all_idx = {0,1,2,3,4,5,6};
+    std::vector<double> min_q(7, -3.14), max_q(7, 3.14);
+    std::vector<double> min_dq(7, -1.0), max_dq(7, 1.0);
+    
+    ocp.addBound(S::pathAndTerminal(), B{B::STATE, all_idx, min_q, max_q});
+    ocp.addBound(S::path(), B{B::INPUT, all_idx, min_dq, max_dq});
+    
+    // 4. 生成求解器
+    mpc_solver = ocp.build();
+    if (mpc_solver) {
+        mpc_wrapper = ocp.takeWrapper(); // 拿走所有权防止被析构
+        std::cout << "[NMPC] Solver built successfully!" << std::endl;
+    } else {
+        std::cerr << "[NMPC ERROR] Failed to build Acados solver!" << std::endl;
+    }
+
+    // 状态初始化
+    last_mpc_time = d->time;
 }
 
-// 每次物理步长（例如 0.001s）会自动进入此函数
+// ======================= 实时控制回调 =======================
+// 每次 mj_step (例如 1000Hz) 都会自动调用此函数
 void nmpc_control_callback(const mjModel* m, mjData* d) {
-    // 自动检测机制：如果发现当前跑的模型指针不是我们初始化的那个（比如用户点击了Reload）
-    // 自动触发一次初始化逻辑，完美避开修改 simulate.cc
+    // 重新加载模型时自动重新初始化
     if (m != cached_model) {
         init_nmpc(m, d);
         cached_model = m;
     }
 
-    // ============================================
-    // 在这里写你的 NMPC 控制循环
-    // ============================================
-    
-    // 1. 读取状态反馈 (使用 d->qpos, d->qvel 等)
-    // 2. 将状态传入 Acados: mpc_solver->set_current_state(...)
-    // 3. 求解: mpc_solver->solve()
-    // 4. 获取控制律
-    
-    // 测试：给机器人手臂写个正弦波动，验证控制已接管
-    double test_ctrl = 0.5 * sin(d->time); 
-    
-    // 5. 下发控制到 MuJoCo 引擎
-    if (hw_ids.left_arm_j1_ctrl_id >= 0) {
-        d->ctrl[hw_ids.left_arm_j1_ctrl_id] = test_ctrl; 
+    if (!mpc_solver) return;
+
+    // --- 1. 降频控制：只在 50Hz (每 0.02秒) 运行一次 MPC 求解 ---
+    if (d->time - last_mpc_time >= MPC_DT) {
+        last_mpc_time += MPC_DT; 
+        double t = d->time; // 当前仿真时间
+
+        // --- A. 从 MuJoCo 读取当前状态 ---
+        std::vector<double> current_q(7, 0.0);
+        for (int i = 0; i < 7; ++i) {
+            if (hw_ids.left_qpos_adr[i] >= 0) {
+                current_q[i] = d->qpos[hw_ids.left_qpos_adr[i]];
+            }
+        }
+
+        // --- B. 生成参考轨迹 (复刻 arm_mpc_node.cpp) ---
+        std::vector<double> target_q = {0.0, -1.0, 0.0, -1.57, 0.0, 0.0, 0.0};
+        std::vector<double> target_dq(7, 0.0); 
+        
+        target_q[0] = 0.5 * sin(1.0 * t);           
+        target_q[1] = -1.0 - 0.5 * cos(1.0 * t);    
+        target_q[3] = -1.57 + 0.8 * sin(1.0 * t);   
+
+        target_dq[0] = 0.5 * 1.0 * cos(1.0 * t);
+        target_dq[1] = 0.5 * 1.0 * sin(1.0 * t);
+        target_dq[3] = 0.8 * 1.0 * cos(1.0 * t);
+
+        std::vector<double> yref(14);
+        std::copy(target_q.begin(), target_q.end(), yref.begin());
+        std::copy(target_dq.begin(), target_dq.end(), yref.begin() + 7);
+
+        // --- C. 送入求解器求解 ---
+        mpc_solver->set_x0(current_q.data());
+        
+        int N = 20; // cfg.N
+        for (int i = 0; i < N; i++) mpc_solver->set_yref(i, yref.data());
+        mpc_solver->set_yref(N, target_q.data()); // 终端参考
+
+        if (mpc_solver->solve() == 0) {
+            // 解析出下个时刻(i=1)的期望状态作为控制位置指令
+            std::vector<double> next_q(7);
+            mpc_solver->get_x(1, next_q.data()); 
+            
+            for (int i = 0; i < 7; ++i) {
+                last_cmd_q[i] = next_q[i]; // 更新缓存
+            }
+        } else {
+            // 求解失败处理，可以保持 last_cmd_q 不变
+            // std::cerr << "[NMPC] Solve failed at t=" << t << std::endl;
+        }
+    }
+
+    // --- 2. 将控制量下发给 MuJoCo (由于物理引擎 1000Hz 运行，我们在中间的帧保持上一次下发的 MPC 目标) ---
+    for (int i = 0; i < 7; ++i) {
+        double left_cmd = last_cmd_q[i];
+
+        // 下发左臂位置 (写入 XML 中定义的 position 执行器)
+        if (hw_ids.left_ctrl_id[i] >= 0) {
+            d->ctrl[hw_ids.left_ctrl_id[i]] = left_cmd;
+        }
+
+        // ============ 右臂镜像动作 (与 ROS 版本一致) ============
+        double right_cmd = left_cmd;
+        // 关节1(肩部左右旋转) 和 关节2(肩部前后俯仰) 等取负号，实现完美的对称镜像运动
+        if (i == 0 || i == 1 || i == 3) {
+            right_cmd = -left_cmd;
+        }
+
+        if (hw_ids.right_ctrl_id[i] >= 0) {
+            d->ctrl[hw_ids.right_ctrl_id[i]] = right_cmd;
+        }
     }
 }
