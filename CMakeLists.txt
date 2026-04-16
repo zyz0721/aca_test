@@ -89,6 +89,7 @@ add_executable(mujoco_sim_run
     ${MUJOCO_DIR}/simulate/main.cc
     ${NMPC_SRC}
     ${MUJOCO_SIMULATE_SRC}        # MuJoCo 原版界面源码
+    src/nmpc_ctrl/src/mujoco_nmpc_sim.cpp
 )
 
 # 链接所有的动态链接库
