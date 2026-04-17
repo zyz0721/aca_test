@@ -4,20 +4,20 @@
 #include <memory>
 #include <cmath>
 
-// 引入你的 NMPC 框架头文件 (路径需确保 CMakeLists 中包含正确)
+// 引入 NMPC 框架头文件 
 #include "ocp_core/OcpProblem.h"
 #include "robot_models/ArmDynamics.h"
 
 // 全局静态变量管理
 static const mjModel* cached_model = nullptr;
 static std::unique_ptr<MPCSolver> mpc_solver;
-static std::unique_ptr<AcadosWrapper> mpc_wrapper; // 必须保持其生命周期
+static std::unique_ptr<AcadosWrapper> mpc_wrapper;
 
 // 存储硬件在 MuJoCo 内存数组中的索引
 struct HardwareIDs {
     int left_qpos_adr[7];
     int left_ctrl_id[7];
-    int right_ctrl_id[7]; // 用于镜像下发右臂控制
+    int right_ctrl_id[7];
 };
 static HardwareIDs hw_ids;
 
@@ -44,7 +44,7 @@ void init_nmpc(const mjModel* m, mjData* d) {
         hw_ids.right_ctrl_id[i] = mj_name2id(m, mjOBJ_ACTUATOR, right_name.c_str());
     }
 
-    // 2. 配置求解器 (完全复刻你 arm_mpc_node.cpp 的配置)
+    // 2. 配置求解器
     SolverConfig cfg;
     cfg.nx = 7; cfg.nu = 7; cfg.N = 20; cfg.T = 1.0; cfg.hz = 50.0;
     // 权重：优先逼近目标角度 (Q)，同时限制速度不要太大 (R)
@@ -77,8 +77,7 @@ void init_nmpc(const mjModel* m, mjData* d) {
     last_mpc_time = d->time;
 }
 
-// ======================= 实时控制回调 =======================
-// 每次 mj_step (例如 1000Hz) 都会自动调用此函数
+// 实时控制回调 每次 mj_step 会调用此函数
 void nmpc_control_callback(const mjModel* m, mjData* d) {
     // UI 开关判断
     if (!g_mpc_ui_state.enable_mpc) {
@@ -93,12 +92,12 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
 
     if (!mpc_solver) return;
 
-    // --- 1. 降频控制：只在 50Hz (每 0.02秒) 运行一次 MPC 求解 ---
+    // 1. 50Hz 运行一次 MPC 求解
     if (d->time - last_mpc_time >= MPC_DT) {
         last_mpc_time += MPC_DT; 
-        double t = d->time; // 当前仿真时间
+        double t = d->time;
 
-        // --- A. 从 MuJoCo 读取当前状态 ---
+        // A. 从 MuJoCo 读取当前状态
         std::vector<double> current_q(7, 0.0);
         for (int i = 0; i < 7; ++i) {
             if (hw_ids.left_qpos_adr[i] >= 0) {
@@ -106,7 +105,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
             }
         }
 
-        // --- B. 生成参考轨迹 (复刻 arm_mpc_node.cpp) ---
+        // B. 生成参考轨迹
         std::vector<double> target_q = {0.0, -1.0, 0.0, -1.57, 0.0, 0.0, 0.0};
         std::vector<double> target_dq(7, 0.0); 
         
@@ -122,7 +121,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         std::copy(target_q.begin(), target_q.end(), yref.begin());
         std::copy(target_dq.begin(), target_dq.end(), yref.begin() + 7);
 
-        // --- C. 送入求解器求解 ---
+        // C. 送入求解器求解 
         mpc_solver->set_x0(current_q.data());
         
         int N = 20; // cfg.N
@@ -130,7 +129,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         mpc_solver->set_yref(N, target_q.data()); // 终端参考
 
         if (mpc_solver->solve() == 0) {
-            // 解析出下个时刻(i=1)的期望状态作为控制位置指令
+            // 解析出下个时刻的期望状态作为控制位置指令
             std::vector<double> next_q(7);
             mpc_solver->get_x(1, next_q.data()); 
             
@@ -138,13 +137,13 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
                 last_cmd_q[i] = next_q[i]; // 更新缓存
             }
 
-            // --- 新增：提取未来 N 步的末端位置用于画线 ---
+            // 提取未来 N 步的末端位置用于画线
             if (g_mpc_ui_state.show_trajectory) {
                 static mjData* d_tmp = nullptr;
                 if (!d_tmp) d_tmp = mj_makeData(m); // 创建一个临时 d 避免污染主物理循环
 
                 // 轨迹末端
-                static int ee_body_id = mj_name2id(m, mjOBJ_BODY, "right_arm_end_effector_mount_link");
+                static int ee_body_id = mj_name2id(m, mjOBJ_BODY, "left_arm_end_effector_mount_link");
 
                 mju_copy(d_tmp->qpos, d->qpos, m->nq); // 拷贝当前状态
 
@@ -155,7 +154,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
                     std::vector<double> pred_q(7);
                     mpc_solver->get_x(i, pred_q.data()); 
 
-                    // 将预测的关节角写给 d_tmp (注意：需要使用你现有的 hw_ids.left_qpos_adr 映射)
+                    // 将预测的关节角写给 d_tmp
                     for(int j=0; j<7; j++) {
                         d_tmp->qpos[hw_ids.left_qpos_adr[j]] = pred_q[j];
                     }
@@ -180,23 +179,21 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
             }
 
         } else {
-            // 求解失败处理，可以保持 last_cmd_q 不变
+            // 求解失败处理，保持 last_cmd_q 不变
             // std::cerr << "[NMPC] Solve failed at t=" << t << std::endl;
         }
     }
 
-    // --- 2. 将控制量下发给 MuJoCo (由于物理引擎 1000Hz 运行，我们在中间的帧保持上一次下发的 MPC 目标) ---
+    // 2. 控制量下发 MuJoCo 
     for (int i = 0; i < 7; ++i) {
         double left_cmd = last_cmd_q[i];
 
-        // 下发左臂位置 (写入 XML 中定义的 position 执行器)
+        // 下发左臂位置
         if (hw_ids.left_ctrl_id[i] >= 0) {
             d->ctrl[hw_ids.left_ctrl_id[i]] = left_cmd;
         }
-
-        // ============ 右臂镜像动作 (与 ROS 版本一致) ============
+        // 右臂镜像动作
         double right_cmd = left_cmd;
-        // 关节1(肩部左右旋转) 和 关节2(肩部前后俯仰) 等取负号，实现完美的对称镜像运动
         if (i == 0 || i == 1 || i == 3) {
             right_cmd = -left_cmd;
         }
@@ -207,7 +204,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
     }
 }
 
-// 轨迹画线函数
+// MPC 轨迹画线函数
 void render_mpc_trajectory(mjvScene* scn) {
     if (!g_mpc_ui_state.show_trajectory) return;
 
@@ -219,17 +216,17 @@ void render_mpc_trajectory(mjvScene* scn) {
 
     if (traj.size() < 2) return;
 
-    // 设置线的颜色和粗细
-    float rgba[4] = {1, 0, 0, 1}; 
-    double width[3] = {0.5, 0.5, 0.5}; // 粗细
+    float rgba[4] = {1.0f, 0.0f, 0.0f, 1.0f}; // 红色
+    double width = 20.0; // 粗细
 
     for (size_t i = 0; i < traj.size() - 1; ++i) {
-        // if (scn->ngeom >= scn->maxgeom) break; // 场景几何体满则退出
+        if (scn->ngeom >= scn->maxgeom) break; // 场景几何体满则退出
 
         double pt1[3] = {traj[i][0], traj[i][1], traj[i][2]};
         double pt2[3] = {traj[i+1][0], traj[i+1][1], traj[i+1][2]};
 
-        mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, width, pt1, pt2, rgba);       
+        mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, nullptr, nullptr, nullptr, rgba);
+        mjv_connector(&scn->geoms[scn->ngeom], mjGEOM_LINE, width, pt1, pt2);
         scn->ngeom++;
     }
 }
