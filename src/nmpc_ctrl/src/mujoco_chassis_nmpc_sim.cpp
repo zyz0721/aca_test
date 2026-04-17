@@ -96,6 +96,7 @@ void init_nmpc(const mjModel* m, mjData* d) {
     steering_ik_solver->init(params); 
 
     // 清空历史轨迹
+    std::lock_guard<std::mutex> lock(g_mpc_ui_state.mtx);
     g_ref_traj.clear();
     g_act_traj.clear();
     
@@ -156,16 +157,22 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         }
     }
 
+    std::cout << "Chassis state initialized." << std::endl;
+
     // 2. 解算 MPC
     int N = chassis_mpc_solver->N();
     int nx = chassis_mpc_solver->get_x_dimension(); // 通常为 6
     int nu = chassis_mpc_solver->get_u_dimension(); // 通常为 3
 
+    std::cout << "MPC dimensions set" << std::endl;
+
     // 1. 设置当前真实状态 x0
     chassis_mpc_solver->set_x0(current_state.data());
 
+    std::cout << "MPC set x0." << std::endl;
+
     // 2. 循环遍历预测视野 N，设置每个 stage 的参考轨迹
-    for (int stage = 0; stage <= N; ++stage) {
+    for (int stage = 0; stage < N; stage++) {
         double pred_time = current_time + stage * MPC_DT;
         auto ref = ref_generator->at(pred_time); // 调用你的 at() 方法获取 RefState
         
@@ -183,12 +190,14 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         }
     }
 
+    std::cout << "MPC solved." << std::endl;
+
     // 3. 执行求解
     int solve_status = chassis_mpc_solver->solve();
 
     // 4. 提取第 0 步的最优控制指令 (通常是底盘全局速度 [vx, vy, omega])
     std::vector<double> u_opt(nu, 0.0);
-    chassis_mpc_solver->get_u(0, u_opt.data());
+    chassis_mpc_solver->get_x(1, u_opt.data());
 
     // F. 底盘逆运动学分配
     WheelCmd wheel_cmds[NUM_WHEELS]; // 定义接收数组
