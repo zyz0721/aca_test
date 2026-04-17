@@ -18,7 +18,7 @@ struct MPCUIState {
     std::mutex mtx;              // 保护数据跨线程读写
 };
 
-extern MPCUIState g_mpc_ui_state;
+extern MPCUIState g_mpc_ui_state; // g_chassis_mpc_ui_state;
 
 // 初始化NMPC求解器（在simulate.cc的主循环前调用一次）
 void init_nmpc(const mjModel* m, mjData* d);

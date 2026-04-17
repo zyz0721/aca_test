@@ -38,6 +38,7 @@ link_directories(${MUJOCO_DIR}/lib)
 # ==========================================
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED) 
+find_package(yaml-cpp REQUIRED)
 
 # ==========================================
 # 修复 lodepng 依赖
@@ -89,7 +90,8 @@ add_executable(mujoco_sim_run
     ${MUJOCO_DIR}/simulate/main.cc
     ${NMPC_SRC}
     ${MUJOCO_SIMULATE_SRC}        # MuJoCo 原版界面源码
-    src/nmpc_ctrl/src/mujoco_nmpc_sim.cpp
+    src/nmpc_ctrl/src/mujoco_chassis_nmpc_sim.cpp
+    # src/nmpc_ctrl/src/mujoco_nmpc_sim.cpp 
 )
 
 # 链接所有的动态链接库
@@ -99,6 +101,7 @@ target_link_libraries(mujoco_sim_run
     blasfeo
     hpipm
     mujoco
+    yaml-cpp
     glfw
     OpenGL::GL
     dl
