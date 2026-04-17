@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <cmath>
+#include <mutex>
 
 // 引入 NMPC 框架头文件 
 #include "ocp_core/OcpProblem.h"
@@ -12,6 +13,7 @@
 static const mjModel* cached_model = nullptr;
 static std::unique_ptr<MPCSolver> mpc_solver;
 static std::unique_ptr<AcadosWrapper> mpc_wrapper;
+static mjData* d_tmp = nullptr; // 用于运动学正解的临时数据结构
 
 // 存储硬件在 MuJoCo 内存数组中的索引
 struct HardwareIDs {
@@ -20,17 +22,50 @@ struct HardwareIDs {
     int right_ctrl_id[7];
 };
 static HardwareIDs hw_ids;
+static int ee_body_id = -1;
 
 // MPC 运行频率控制
 static double last_mpc_time = -1.0;
 static const double MPC_DT = 0.02; // 50Hz = 0.02s
 static std::vector<double> last_cmd_q(7, 0.0); // 缓存上一次的控制目标
 
+// 新增轨迹存储
+static std::vector<std::vector<double>> g_ref_traj; // 参考轨迹
+static std::vector<std::vector<double>> g_act_traj; // 实际轨迹
+static const size_t MAX_ACT_TRAJ_LEN = 300;         // 实际轨迹保留长度
+
 MPCUIState g_mpc_ui_state;
+
+// ======================= 轨迹参考生成器 =======================
+
+// 辅助函数：获取特定时间的参考关节角位置
+static std::vector<double> get_reference_q(double t) {
+    std::vector<double> q = {0.0, -1.0, 0.0, -1.57, 0.0, 0.0, 0.0};
+    q[0] = 0.5 * sin(1.0 * t);           
+    q[1] = -1.0 - 0.2 * cos(1.0 * t);    
+    q[3] = -1.57 + 0.8 * sin(1.0 * t);   
+    return q;
+}
+
+// 辅助函数：获取特定时间的参考关节角速度
+static std::vector<double> get_reference_dq(double t) {
+    std::vector<double> dq(7, 0.0);
+    dq[0] = 0.5 * 1.0 * cos(1.0 * t);
+    dq[1] = 0.5 * 1.0 * sin(1.0 * t);
+    dq[3] = 0.8 * 1.0 * cos(1.0 * t);
+    return dq;
+}
 
 // ======================= 初始化 NMPC =======================
 void init_nmpc(const mjModel* m, mjData* d) {
     std::cout << "\n[NMPC] Initializing Acados/CasADi Solver for MuJoCo..." << std::endl;
+
+    // 清理旧的临时数据，重建新的辅助计算结构
+    if (d_tmp) {
+        mj_deleteData(d_tmp);
+        d_tmp = nullptr;
+    }
+    d_tmp = mj_makeData(m);
 
     // 1. 获取模型中左右臂的内存地址 ID
     for (int i = 0; i < 7; ++i) {
@@ -43,6 +78,8 @@ void init_nmpc(const mjModel* m, mjData* d) {
         hw_ids.left_ctrl_id[i]  = mj_name2id(m, mjOBJ_ACTUATOR, left_name.c_str());
         hw_ids.right_ctrl_id[i] = mj_name2id(m, mjOBJ_ACTUATOR, right_name.c_str());
     }
+
+    ee_body_id = mj_name2id(m, mjOBJ_BODY, "left_arm_end_effector_mount_link");
 
     // 2. 配置求解器
     SolverConfig cfg;
@@ -75,6 +112,12 @@ void init_nmpc(const mjModel* m, mjData* d) {
 
     // 状态初始化
     last_mpc_time = d->time;
+    {
+        std::lock_guard<std::mutex> lock(g_mpc_ui_state.mtx);
+        g_act_traj.clear();
+        g_ref_traj.clear();
+        g_mpc_ui_state.predicted_ee_pos.clear();
+    }
 }
 
 // 实时控制回调 每次 mj_step 会调用此函数
@@ -97,7 +140,21 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         last_mpc_time += MPC_DT; 
         double t = d->time;
 
-        // A. 从 MuJoCo 读取当前状态
+        // --- A. 记录当前实际的末端位置 (用于绘制蓝色实际历史轨迹) ---
+        if (ee_body_id >= 0 && g_mpc_ui_state.show_trajectory) {
+            std::vector<double> current_ee_pos = {
+                d->xpos[3 * ee_body_id + 0],
+                d->xpos[3 * ee_body_id + 1],
+                d->xpos[3 * ee_body_id + 2]
+            };
+            std::lock_guard<std::mutex> lock(g_mpc_ui_state.mtx);
+            g_act_traj.push_back(current_ee_pos);
+            if (g_act_traj.size() > MAX_ACT_TRAJ_LEN) {
+                g_act_traj.erase(g_act_traj.begin()); // 保持队列长度
+            }
+        }
+
+        // B. 从 MuJoCo 读取当前状态
         std::vector<double> current_q(7, 0.0);
         for (int i = 0; i < 7; ++i) {
             if (hw_ids.left_qpos_adr[i] >= 0) {
@@ -105,28 +162,21 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
             }
         }
 
-        // B. 生成参考轨迹
-        std::vector<double> target_q = {0.0, -1.0, 0.0, -1.57, 0.0, 0.0, 0.0};
-        std::vector<double> target_dq(7, 0.0); 
-        
-        target_q[0] = 0.5 * sin(1.0 * t);           
-        target_q[1] = -1.0 - 0.5 * cos(1.0 * t);    
-        target_q[3] = -1.57 + 0.8 * sin(1.0 * t);   
-
-        target_dq[0] = 0.5 * 1.0 * cos(1.0 * t);
-        target_dq[1] = 0.5 * 1.0 * sin(1.0 * t);
-        target_dq[3] = 0.8 * 1.0 * cos(1.0 * t);
-
-        std::vector<double> yref(14);
-        std::copy(target_q.begin(), target_q.end(), yref.begin());
-        std::copy(target_dq.begin(), target_dq.end(), yref.begin() + 7);
-
         // C. 送入求解器求解 
         mpc_solver->set_x0(current_q.data());
         
         int N = 20; // cfg.N
-        for (int i = 0; i < N; i++) mpc_solver->set_yref(i, yref.data());
-        mpc_solver->set_yref(N, target_q.data()); // 终端参考
+        // 分步计算未来 N 步的参考目标并注入求解器
+        for (int i = 0; i < N; i++) {
+            auto step_q = get_reference_q(t + i * MPC_DT);
+            auto step_dq = get_reference_dq(t + i * MPC_DT);
+            std::vector<double> yref(14);
+            std::copy(step_q.begin(), step_q.end(), yref.begin());
+            std::copy(step_dq.begin(), step_dq.end(), yref.begin() + 7);
+            mpc_solver->set_yref(i, yref.data());
+        }
+        auto term_q = get_reference_q(t + N * MPC_DT);
+        mpc_solver->set_yref(N, term_q.data()); // 终端参考点
 
         if (mpc_solver->solve() == 0) {
             // 解析出下个时刻的期望状态作为控制位置指令
@@ -137,50 +187,59 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
                 last_cmd_q[i] = next_q[i]; // 更新缓存
             }
 
-            // 提取未来 N 步的末端位置用于画线
-            if (g_mpc_ui_state.show_trajectory) {
-                static mjData* d_tmp = nullptr;
-                if (!d_tmp) d_tmp = mj_makeData(m); // 创建一个临时 d 避免污染主物理循环
+            // --- D. 提取未来预测位置和完整的全局参考位置，用于画线 ---
+            if (g_mpc_ui_state.show_trajectory && ee_body_id >= 0 && d_tmp) {
+                std::vector<std::vector<double>> current_pred_traj;
+                std::vector<std::vector<double>> current_ref_traj;
 
-                // 轨迹末端
-                static int ee_body_id = mj_name2id(m, mjOBJ_BODY, "left_arm_end_effector_mount_link");
-
-                mju_copy(d_tmp->qpos, d->qpos, m->nq); // 拷贝当前状态
-
-                std::vector<std::vector<double>> current_traj;
-                int render_N = std::min(g_mpc_ui_state.horizon_steps, 20); // 你的 N
-
+                // (1) 获取预测状态的正解 (红色线，仅显示 N=20 步)
+                int render_N = std::min(g_mpc_ui_state.horizon_steps, N); 
                 for (int i = 0; i < render_N; i++) {
                     std::vector<double> pred_q(7);
                     mpc_solver->get_x(i, pred_q.data()); 
 
-                    // 将预测的关节角写给 d_tmp
+                    mju_copy(d_tmp->qpos, d->qpos, m->nq);
                     for(int j=0; j<7; j++) {
-                        d_tmp->qpos[hw_ids.left_qpos_adr[j]] = pred_q[j];
+                        if (hw_ids.left_qpos_adr[j] >= 0)
+                            d_tmp->qpos[hw_ids.left_qpos_adr[j]] = pred_q[j];
                     }
-
-                    // 计算当前预测 q 下的运动学
-                    mj_kinematics(m, d_tmp);
-
-                    // 获取末端 XYZ
-                    std::vector<double> pos = {
+                    mj_kinematics(m, d_tmp); 
+                    current_pred_traj.push_back({
                         d_tmp->xpos[3 * ee_body_id + 0],
                         d_tmp->xpos[3 * ee_body_id + 1],
                         d_tmp->xpos[3 * ee_body_id + 2]
-                    };
-                    current_traj.push_back(pos);
+                    });
+                }
+
+                // (2) 获取完整的期望参考轨迹 (绿色线)
+                // 从当前时间 t 开始，往后预测一个完整的周期 (大约 2*pi ≈ 6.28秒，除以 0.02s 约 315步)
+                // 这样你在画面中就会看到一个完整的期望"赛道"
+                int REF_GLOBAL_STEPS = 315; 
+                for (int i = 0; i < REF_GLOBAL_STEPS; i++) {
+                    auto ref_q = get_reference_q(t + i * MPC_DT);
+                    mju_copy(d_tmp->qpos, d->qpos, m->nq);
+                    for(int j=0; j<7; j++) {
+                        if (hw_ids.left_qpos_adr[j] >= 0)
+                            d_tmp->qpos[hw_ids.left_qpos_adr[j]] = ref_q[j];
+                    }
+                    mj_kinematics(m, d_tmp);
+                    current_ref_traj.push_back({
+                        d_tmp->xpos[3 * ee_body_id + 0],
+                        d_tmp->xpos[3 * ee_body_id + 1],
+                        d_tmp->xpos[3 * ee_body_id + 2]
+                    });
                 }
 
                 // 加锁更新给渲染线程
                 {
                     std::lock_guard<std::mutex> lock(g_mpc_ui_state.mtx);
-                    g_mpc_ui_state.predicted_ee_pos = current_traj;
+                    g_mpc_ui_state.predicted_ee_pos = current_pred_traj;
+                    g_ref_traj = current_ref_traj;
                 }
             }
 
         } else {
             // 求解失败处理，保持 last_cmd_q 不变
-            // std::cerr << "[NMPC] Solve failed at t=" << t << std::endl;
         }
     }
 
@@ -208,25 +267,39 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
 void render_mpc_trajectory(mjvScene* scn) {
     if (!g_mpc_ui_state.show_trajectory) return;
 
-    std::vector<std::vector<double>> traj;
+    std::vector<std::vector<double>> pred_traj;
+    std::vector<std::vector<double>> ref_traj;
+    std::vector<std::vector<double>> act_traj;
     {
         std::lock_guard<std::mutex> lock(g_mpc_ui_state.mtx);
-        traj = g_mpc_ui_state.predicted_ee_pos;
+        pred_traj = g_mpc_ui_state.predicted_ee_pos;
+        ref_traj  = g_ref_traj;
+        act_traj  = g_act_traj;
     }
 
-    if (traj.size() < 2) return;
+    // 内部 Lambda 函数：绘制线段序列
+    auto draw_path = [&](const std::vector<std::vector<double>>& traj, float r, float g, float b, float a, double width) {
+        if (traj.size() < 2) return;
+        float rgba[4] = {r, g, b, a};
+        for (size_t i = 0; i < traj.size() - 1; ++i) {
+            if (scn->ngeom >= scn->maxgeom) break; // 场景几何体满则退出
 
-    float rgba[4] = {1.0f, 0.0f, 0.0f, 1.0f}; // 红色
-    double width = 20.0; // 粗细
+            double pt1[3] = {traj[i][0], traj[i][1], traj[i][2]};
+            double pt2[3] = {traj[i+1][0], traj[i+1][1], traj[i+1][2]};
 
-    for (size_t i = 0; i < traj.size() - 1; ++i) {
-        if (scn->ngeom >= scn->maxgeom) break; // 场景几何体满则退出
+            // 使用 mjGEOM_LINE 绘制连接线，宽度参数控制线条的粗细（像素级）
+            mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, nullptr, nullptr, nullptr, rgba);
+            mjv_connector(&scn->geoms[scn->ngeom], mjGEOM_LINE, width, pt1, pt2);
+            scn->ngeom++;
+        }
+    };
 
-        double pt1[3] = {traj[i][0], traj[i][1], traj[i][2]};
-        double pt2[3] = {traj[i+1][0], traj[i+1][1], traj[i+1][2]};
-
-        mjv_initGeom(&scn->geoms[scn->ngeom], mjGEOM_CAPSULE, nullptr, nullptr, nullptr, rgba);
-        mjv_connector(&scn->geoms[scn->ngeom], mjGEOM_LINE, width, pt1, pt2);
-        scn->ngeom++;
-    }
+    // 1. 实际历史轨迹 - 蓝色 (Blue)，细线
+    draw_path(act_traj, 0.0f, 0.5f, 1.0f, 1.0f, 5.0);
+    
+    // 2. 全局参考轨迹 - 绿色 (Green)，细线 (稍微调细，显得像一条轨道)
+    draw_path(ref_traj, 0.0f, 1.0f, 0.0f, 1.0f, 5.0);
+    
+    // 3. MPC 预测轨迹 - 红色 (Red)，粗线 (指示当前的行动意图)
+    draw_path(pred_traj, 1.0f, 0.0f, 0.0f, 1.0f, 20.0);
 }
