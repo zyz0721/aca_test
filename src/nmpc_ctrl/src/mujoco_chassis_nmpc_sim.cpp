@@ -80,6 +80,8 @@ void init_nmpc(const mjModel* m, mjData* d) {
         if(steer_jnt != -1) hw_ids.steer_qpos_idx[i] = m->jnt_qposadr[steer_jnt];
     }
 
+    std::cout << "FIND MUJOCO JOINT" << std::endl;
+
     // 3. 初始化 NMPC 求解器
     std::string config_path = "/home/galbot/galbot_ws/aca_test/src/nmpc_ctrl/config/mpc_config.yaml";
     MpcParams params;
@@ -105,7 +107,15 @@ void init_nmpc(const mjModel* m, mjData* d) {
 // ==========================================================
 void nmpc_control_callback(const mjModel* m, mjData* d) {
     if (!g_mpc_ui_state.enable_mpc) return;
+
+    // 重新加载模型时自动重新初始化
+    if (m != cached_model) {
+        init_nmpc(m, d);
+        cached_model = m;
+    }
+
     if (!chassis_mpc_solver) return;
+    std::cout << "STEP Fin" << std::endl;
 
     double current_time = d->time;
 
@@ -187,13 +197,13 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
 
     // G. 下发执行器
     for(int i = 0; i < 4; ++i) {
-        // 下发驱动轮指令 (通常 Gazebo/MuJoCo 的轮毂电机接受的是角速度 drive_omega)
         if(hw_ids.drive_ctrl_idx[i] != -1)
-            d->ctrl[hw_ids.drive_ctrl_idx[i]] = wheel_cmds[i].drive_omega; 
+            d->ctrl[hw_ids.drive_ctrl_idx[i]] = wheel_cmds[i].drive_vel; 
             
-        // 下发舵轮转向角度指令
         if(hw_ids.steer_ctrl_idx[i] != -1)
             d->ctrl[hw_ids.steer_ctrl_idx[i]] = wheel_cmds[i].steer_angle; 
+        
+        printf("[MPC] Wheel %d: drive_vel=%.3f, steer_angle=%.3f\n", i+1, wheel_cmds[i].drive_vel, wheel_cmds[i].steer_angle);
     }
 }
 
