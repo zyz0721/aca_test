@@ -7,12 +7,12 @@
       <joint stiffness="0" damping="0.1" armature="0.1"/>
 
       <default class="steer_position">  <!-- 适用于底盘的位置控制，关节限幅，控制限赋，控制增益-->
-        <joint range="-2.965 2.965" limited="true"/>
-        <position kp="100" kv="10" ctrlrange="-2.965 2.965"/>
+        <joint range="-3.14 3.14" limited="true"/>
+        <position kp="200" kv="10" ctrlrange="-3.14 3.14"/>
       </default>
 
       <default class="wheel_velocity">  <!-- 适用于底盘的速度控制，关节限幅，控制限赋，控制增益-->
-        <velocity kv="100" ctrlrange="-12.5 12.5"/>  <!-- Hinge Joint：rad/s；Slide Joint：m/s；轮半径8cm，目前速度为1m/s-->
+        <velocity kv="100" ctrlrange="-20 20"/>  <!-- Hinge Joint：rad/s；Slide Joint：m/s；轮半径8cm，目前速度为1m/s-->
         <joint limited="false"/>
       </default>
 
@@ -59,7 +59,7 @@
         <geom name="omni_chassis_base_link_collision" pos="0 0 0.1" type="mesh" mesh="base_link_convex_hull.STL" class="collision" />  <!--位置抬高，防止轮子不着地-->
 
         <!-- Wheel 1 -->
-        <body name="Wheel_1_direction_link" pos="0.247 0.247 0.0535">
+        <body name="Wheel_1_direction_link" pos="0.247 -0.247 0.0535">
           <joint name="Wheel_1_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
           <inertial pos="-0.000212742 -0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 -2.66657e-05 -0.00111307" />
           <geom name="Wheel_1_direction_link_visual" type="mesh" mesh="Wheel_1_direction_link.STL" class="visual" />
@@ -74,7 +74,7 @@
         </body>
 
         <!-- Wheel 2 -->
-        <body name="Wheel_2_direction_link" pos="0.247 -0.247 0.0535">
+        <body name="Wheel_2_direction_link" pos="0.247 0.247 0.0535">
           <joint name="Wheel_2_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
           <inertial pos="0.000212742 0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 2.66657e-05 0.00111307" />
           <geom name="Wheel_2_direction_link_visual" type="mesh" mesh="Wheel_2_direction_link.STL" class="visual" />

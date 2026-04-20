@@ -27,7 +27,7 @@ struct MpcParams {
     // int sqp_max_iter;
 
     // --- 参考轨迹 ---
-    std::string ref_type = "circle";
+    std::string ref_type = "figure8";
     double circle_r = 2.0, circle_v = 1.0;
     double line_vx = 1.0;
     double fig8_a = 2.0, fig8_omega = 0.3;
