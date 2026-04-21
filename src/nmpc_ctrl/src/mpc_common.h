@@ -35,7 +35,7 @@ struct MpcParams {
     // --- 车辆几何 ---
     double wheel_base  = 0.494;
     double track_width = 0.494;
-    double wheel_radius = 0.1;     // 轮子半径 (用于 hub 角速度)
+    double wheel_radius = 0.08;     // 轮子半径 (用于 hub 角速度)
 
     // --- 运动学限制 ---
     double max_vel      = 2.0;
@@ -60,7 +60,7 @@ struct MpcParams {
     double wheel_ly[NUM_WHEELS];
 
     // --- 模式 ---
-    bool sim_mode = true;           // true=仿真, false=实车(订阅odom)
+    bool sim_mode = false;           // true=仿真, false=实车(订阅odom)
     std::string odom_topic = "/odom";
     std::string joint_cmd_topic = "/joint_commands";
 
@@ -107,10 +107,10 @@ struct MpcParams {
             // 计算四轮位置
             double lx = wheel_base / 2.0;
             double ly = track_width / 2.0;
-            wheel_lx[0] =  lx; wheel_ly[0] =  ly; // 左前
-            wheel_lx[1] =  lx; wheel_ly[1] = -ly; // 右前
-            wheel_lx[2] = -lx; wheel_ly[2] =  ly; // 左后
-            wheel_lx[3] = -lx; wheel_ly[3] = -ly; // 右后
+            wheel_lx[0] =  lx; wheel_ly[0] = -ly; // 左前
+            wheel_lx[1] =  lx; wheel_ly[1] =  ly; // 右前
+            wheel_lx[2] = -lx; wheel_ly[2] = -ly; // 左后
+            wheel_lx[3] = -lx; wheel_ly[3] =  ly; // 右后
 
             // 4. 读取 Cost 权重矩阵
             if (config["cost"] && config["cost"]["W"]) {

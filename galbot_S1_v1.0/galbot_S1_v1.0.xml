@@ -8,11 +8,11 @@
 
       <default class="steer_position">  <!-- 适用于底盘的位置控制，关节限幅，控制限赋，控制增益-->
         <joint range="-3.14 3.14" limited="true"/>
-        <position kp="60" kv="5" ctrlrange="-3.14 3.14" forcerange="-50 50"/>
+        <position kp="500" kv="5" ctrlrange="-3.14 3.14" forcerange="-50 50"/>
       </default>
 
       <default class="wheel_velocity">  <!-- 适用于底盘的速度控制，关节限幅，控制限赋，控制增益-->
-        <velocity kv="50" ctrlrange="-15 15"/>  <!-- Hinge Joint：rad/s；Slide Joint：m/s；轮半径8cm，目前速度为1m/s-->
+        <velocity kv="100" ctrlrange="-15 15"/>  <!-- Hinge Joint：rad/s；Slide Joint：m/s；轮半径8cm，目前速度为1m/s-->
         <joint limited="false"/>
       </default>
 
@@ -25,7 +25,7 @@
       </default>
 
       <default class="galbot_S1_position">  <!-- 位置控制，关节限幅，控制限赋，控制增益-->
-        <position kp="4000" kv="300" ctrlrange="-4 4" forcerange="-3000 3000"/>
+        <position kp="10000" kv="200" ctrlrange="-4 4" forcerange="-3000 3000"/>
       </default>
 
       <default class="visual">
