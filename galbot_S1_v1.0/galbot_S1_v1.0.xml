@@ -8,11 +8,11 @@
 
       <default class="steer_position">  <!-- 适用于底盘的位置控制，关节限幅，控制限赋，控制增益-->
         <joint range="-3.14 3.14" limited="true"/>
-        <position kp="200" kv="10" ctrlrange="-3.14 3.14"/>
+        <position kp="60" kv="5" ctrlrange="-3.14 3.14" forcerange="-50 50"/>
       </default>
 
       <default class="wheel_velocity">  <!-- 适用于底盘的速度控制，关节限幅，控制限赋，控制增益-->
-        <velocity kv="100" ctrlrange="-20 20"/>  <!-- Hinge Joint：rad/s；Slide Joint：m/s；轮半径8cm，目前速度为1m/s-->
+        <velocity kv="50" ctrlrange="-15 15"/>  <!-- Hinge Joint：rad/s；Slide Joint：m/s；轮半径8cm，目前速度为1m/s-->
         <joint limited="false"/>
       </default>
 
@@ -60,14 +60,14 @@
 
         <!-- Wheel 1 -->
         <body name="Wheel_1_direction_link" pos="0.247 -0.247 0.0535">
-          <joint name="Wheel_1_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
-          <inertial pos="-0.000212742 -0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 -2.66657e-05 -0.00111307" />
+          <joint name="Wheel_1_direction_joint" type="hinge" ref="0.0" range="-3.14 3.14" axis="0 0 1" class="steer_position"/>
+          <inertial pos="0.000212742 0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 2.66657e-05 0.00111307" />
           <geom name="Wheel_1_direction_link_visual" type="mesh" mesh="Wheel_1_direction_link.STL" class="visual" />
           <geom name="Wheel_1_direction_link_collision" type="mesh" mesh="Wheel_1_direction_link.STL" class="collision" />
 
           <body name="Wheel_1_drive_link" pos="0 0 0" euler="0 0 -1.5707963267948966">
             <joint name="Wheel_1_drive_joint" type="hinge" ref="0.0" axis="0 0 1" class="wheel_velocity"/>
-            <inertial pos="-0.000458991 1.86961e-05 -0.000901215" mass="1.57669" fullinertia="0.00316177 0.00319453 0.00479197 -1.46947e-06 1.55292e-05 7.02743e-07" />
+            <inertial pos="-0.000458074 3.45018e-05 0.000901215" mass="1.57669" fullinertia="0.00316255 0.00319375 0.00479197 5.1926e-06 -1.53409e-05 2.49295e-06" />
             <geom name="Wheel_1_drive_link_visual" type="mesh" mesh="Wheel_1_drive_link.STL" class="visual" />
             <geom name="Wheel_1_collision" type="cylinder" size="0.08 0.03" class="wheel_geom"/>
           </body>
@@ -75,14 +75,14 @@
 
         <!-- Wheel 2 -->
         <body name="Wheel_2_direction_link" pos="0.247 0.247 0.0535">
-          <joint name="Wheel_2_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
-          <inertial pos="0.000212742 0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 2.66657e-05 0.00111307" />
+          <joint name="Wheel_2_direction_joint" type="hinge" ref="0.0" range="-3.14 3.14" axis="0 0 1" class="steer_position"/>
+          <inertial pos="-0.000212742 -0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 -2.66657e-05 -0.00111307" />
           <geom name="Wheel_2_direction_link_visual" type="mesh" mesh="Wheel_2_direction_link.STL" class="visual" />
           <geom name="Wheel_2_direction_link_collision" type="mesh" mesh="Wheel_2_direction_link.STL" class="collision" />
 
           <body name="Wheel_2_drive_link" pos="0 0 0" euler="0 0 -1.5707963267948966">
             <joint name="Wheel_2_drive_joint" type="hinge" ref="0.0" axis="0 0 1" class="wheel_velocity"/>
-            <inertial pos="-0.000458074 3.45018e-05 0.000901215" mass="1.57669" fullinertia="0.00316255 0.00319375 0.00479197 5.1926e-06 -1.53409e-05 2.49295e-06" />
+            <inertial pos="-0.000458991 1.86961e-05 -0.000901215" mass="1.57669" fullinertia="0.00316177 0.00319453 0.00479197 -1.46947e-06 1.55292e-05 7.02743e-07" />
             <geom name="Wheel_2_drive_link_visual" type="mesh" mesh="Wheel_2_drive_link.STL" class="visual" />
             <geom name="Wheel_2_collision" type="cylinder" size="0.08 0.03" class="wheel_geom"/>
           </body>
@@ -90,7 +90,7 @@
 
         <!-- Wheel 3 -->
         <body name="Wheel_3_direction_link" pos="-0.247 -0.247 0.0535">
-          <joint name="Wheel_3_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
+          <joint name="Wheel_3_direction_joint" type="hinge" ref="0.0" range="-3.14 3.14" axis="0 0 1" class="steer_position"/>
           <inertial pos="0.000212742 0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 2.66657e-05 0.00111307" />
           <geom name="Wheel_3_direction_link_visual" type="mesh" mesh="Wheel_3_direction_link.STL" class="visual" />
           <geom name="Wheel_3_direction_link_collision" type="mesh" mesh="Wheel_3_direction_link.STL" class="collision" />
@@ -105,7 +105,7 @@
 
         <!-- Wheel 4 -->
         <body name="Wheel_4_direction_link" pos="-0.247 0.247 0.0535">
-          <joint name="Wheel_4_direction_joint" type="hinge" ref="0.0" range="-2.965 2.965" axis="0 0 1" class="steer_position"/>
+          <joint name="Wheel_4_direction_joint" type="hinge" ref="0.0" range="-3.14 3.14" axis="0 0 1" class="steer_position"/>
           <inertial pos="-0.000212742 -0.0330648 0.0675534" mass="2.13612" fullinertia="0.00374226 0.00413405 0.00309942 -8.4164e-06 -2.66657e-05 -0.00111307" />
           <geom name="Wheel_4_direction_link_visual" type="mesh" mesh="Wheel_4_direction_link.STL" class="visual" />
           <geom name="Wheel_4_direction_link_collision" type="mesh" mesh="Wheel_4_direction_link.STL" class="collision" />
@@ -296,13 +296,13 @@
 
   <actuator>
     <!-- Chassis -->
-    <position name="Wheel_1_direction_joint" joint="Wheel_1_direction_joint" class="steer_motor"/>
+    <position name="Wheel_1_direction_joint" joint="Wheel_1_direction_joint" class="steer_position"/>
     <velocity name="Wheel_1_drive_joint" joint="Wheel_1_drive_joint" class="wheel_velocity"/>
-    <position name="Wheel_2_direction_joint" joint="Wheel_2_direction_joint" class="steer_motor"/>
+    <position name="Wheel_2_direction_joint" joint="Wheel_2_direction_joint" class="steer_position"/>
     <velocity name="Wheel_2_drive_joint" joint="Wheel_2_drive_joint" class="wheel_velocity"/>
-    <position name="Wheel_3_direction_joint" joint="Wheel_3_direction_joint" class="steer_motor"/>
+    <position name="Wheel_3_direction_joint" joint="Wheel_3_direction_joint" class="steer_position"/>
     <velocity name="Wheel_3_drive_joint" joint="Wheel_3_drive_joint" class="wheel_velocity"/>
-    <position name="Wheel_4_direction_joint" joint="Wheel_4_direction_joint" class="steer_motor"/>
+    <position name="Wheel_4_direction_joint" joint="Wheel_4_direction_joint" class="steer_position"/>
     <velocity name="Wheel_4_drive_joint" joint="Wheel_4_drive_joint" class="wheel_velocity"/>
 
     <position name="torso_base_joint" joint="torso_base_joint" kp="10000" kv="1000" ctrlrange="0 0.75" forcerange="-6000 6000" />

@@ -59,11 +59,19 @@ public:
             r.val[2] = atan2(vy, vx);  // yaw = 切线方向
             r.val[3] = vx;
             r.val[4] = vy;
-            r.val[5] = 0.0;  // 简化: dyaw=0
-            // 加速度 (解析二阶导)
-            r.u_ref[0] = -a * w * w * sin(w * t);
-            r.u_ref[1] = -2.0 * a * w * w * sin(2.0 * w * t);
-            r.u_ref[2] = 0.0;
+            r.val[5] = 0.0;     // 简化模型
+            // 计算 yaw 角速度 (dyaw) 的参考值，避免与 yaw 姿态参考冲突
+            // double speed2 = vx * vx + vy * vy;
+            // if (speed2 > 1e-6) {
+            //     r.val[5] = (vx * (-2.0 * a * w * w * sin(2.0 * w * t)) -
+            //                 vy * (-a * w * w * sin(w * t))) / speed2;
+            // } else {
+            //     r.val[5] = 0.0;
+            // }
+            // // 加速度 (解析二阶导)
+            // r.u_ref[0] = -a * w * w * sin(w * t);
+            // r.u_ref[1] = -2.0 * a * w * w * sin(2.0 * w * t);
+            // r.u_ref[2] = 0.0;
         }
         return r;
     }

@@ -35,7 +35,7 @@ struct MpcParams {
     // --- 车辆几何 ---
     double wheel_base  = 0.494;
     double track_width = 0.494;
-    double wheel_radius = 0.08;     // 轮子半径 (用于 hub 角速度)
+    double wheel_radius = 0.1;     // 轮子半径 (用于 hub 角速度)
 
     // --- 运动学限制 ---
     double max_vel      = 2.0;
@@ -142,14 +142,14 @@ struct MpcParams {
             if (config["joints"] && config["joints"]["prefix"]) {
                 prefix = config["joints"]["prefix"].as<std::string>();
             }
-            steer_joint_names = {
-                prefix + "fl_steer_joint", prefix + "fr_steer_joint",
-                prefix + "rl_steer_joint", prefix + "rr_steer_joint"
-            };
-            drive_joint_names = {
-                prefix + "fl_drive_joint", prefix + "fr_drive_joint",
-                prefix + "rl_drive_joint", prefix + "rr_drive_joint"
-            };
+            // steer_joint_names = {
+            //     prefix + "fl_steer_joint", prefix + "fr_steer_joint",
+            //     prefix + "rl_steer_joint", prefix + "rr_steer_joint"
+            // };
+            // drive_joint_names = {
+            //     prefix + "fl_drive_joint", prefix + "fr_drive_joint",
+            //     prefix + "rl_drive_joint", prefix + "rr_drive_joint"
+            // };
 
             std::cout << "[MpcParams] Successfully loaded configuration from: " << yaml_path << std::endl;
         } 

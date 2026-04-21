@@ -24,10 +24,10 @@
 // 全局状态与资源
 // ==========================================================
 MPCUIState g_mpc_ui_state;
+MpcParams params;
 
 static const mjModel* cached_model = nullptr;
 
-// 建议使用 unique_ptr 管理生命周期
 static std::unique_ptr<MPCSolver> chassis_mpc_solver;
 static std::unique_ptr<AcadosWrapper> wrapper_;
 static std::unique_ptr<ReferenceGenerator> ref_generator;
@@ -47,7 +47,7 @@ static ChassisHWIDs hw_ids;
 
 // MPC 运行频率控制
 static double last_mpc_time = -1.0;
-static const double MPC_DT = 0.02; // 50Hz = 0.02s
+static const double MPC_DT = 0.02; // 50Hz - 0.02s
 
 // 轨迹存储
 static std::vector<std::vector<double>> g_ref_traj; // 参考轨迹
@@ -101,7 +101,6 @@ void init_nmpc(const mjModel* m, mjData* d) {
 
     // 3. 初始化 NMPC 求解器
     std::string config_path = "/home/galbot/galbot_ws/aca_test/src/nmpc_ctrl/config/mpc_config.yaml";
-    MpcParams params;
     params.loadFromYaml(config_path);
 
     // 使用 OcpProblem 构建求解器
@@ -216,6 +215,16 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         }
     }
 
+    // DEBUG: 打印状态提取和MPC解算结果
+    static int dbg_count = 0;
+    if (dbg_count % 50 == 0) {
+            printf("[NMPC DEBUG] current steer angles: ");
+            for(int i = 0; i < 4; i++) {
+                printf("W%d[steer angle=%.3f] ", i, current_steer_angles[i]);
+            }
+            printf("\n");
+    }
+
     // 2. 解算 MPC
     int N = chassis_mpc_solver->N();
     int nx = chassis_mpc_solver->get_x_dimension(); // 通常为 6
@@ -302,16 +311,38 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
     double vy_global_target = x1[4];
     double dyaw_target      = x1[5];
 
+    if (dbg_count++ % 50 == 0) {
+        printf("[NMPC DEBUG] current_state: [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\n",
+               current_state[0], current_state[1], current_state[2],
+               current_state[3], current_state[4], current_state[5]);
+        printf("[NMPC DEBUG] x1 (next target): [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\n",
+               x1[0], x1[1], x1[2], x1[3], x1[4], x1[5]);
+        printf("[NMPC DEBUG] Global target vel: vx=%.3f vy=%.3f dyaw=%.3f\n",
+               vx_global_target, vy_global_target, dyaw_target);
+    }
+
     // F. 将全局速度转为体坐标系速度
     double vx_body, vy_body;
     double c = cos(current_state[2]), s = sin(current_state[2]);
     vx_body =  c * vx_global_target + s * vy_global_target;
     vy_body = -s * vx_global_target + c * vy_global_target;
 
+    if (dbg_count % 50 == 0) {
+        printf("[NMPC DEBUG] Body target vel: vx_body=%.3f vy_body=%.3f (yaw=%.3f)\n",
+               vx_body, vy_body, current_state[2]);
+    }
+
     // G. 底盘逆运动学分配
     WheelCmd wheel_cmds[NUM_WHEELS]; 
     if (solve_status == 0) {
         steering_ik_solver->compute(vx_body, vy_body, dyaw_target, wheel_cmds, MPC_DT);
+        if (dbg_count % 50 == 0) {
+            printf("[NMPC DEBUG] Wheel commands: ");
+            for(int i = 0; i < 4; i++) {
+                printf("W%d[steer=%.3f,vel=%.3f] ", i, wheel_cmds[i].steer_angle, wheel_cmds[i].drive_vel);
+            }
+            printf("\n");
+        }
     } else {
         // 如果求解失败，使用 0 速度或上一帧速度安全停止
         steering_ik_solver->compute(0.0, 0.0, 0.0, wheel_cmds, MPC_DT);
@@ -321,7 +352,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
     // H. 下发执行器
     for(int i = 0; i < 4; ++i) {
         if(hw_ids.drive_ctrl_idx[i] != -1)
-            d->ctrl[hw_ids.drive_ctrl_idx[i]] = wheel_cmds[i].drive_vel; 
+            d->ctrl[hw_ids.drive_ctrl_idx[i]] = wheel_cmds[i].drive_omega; // 转为轮子角速度
             
         if(hw_ids.steer_ctrl_idx[i] != -1)
             d->ctrl[hw_ids.steer_ctrl_idx[i]] = wheel_cmds[i].steer_angle; 
