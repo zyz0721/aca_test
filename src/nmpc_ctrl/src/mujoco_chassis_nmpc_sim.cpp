@@ -5,8 +5,8 @@
 #include <cmath>
 #include <memory>
 #include <mutex>
+#include <chrono>
 
-// 包含你的四舵轮 NMPC 头文件
 #include "mpc_solver.h"
 #include "mpc_common.h"
 #include "reference_generator.h"
@@ -20,9 +20,7 @@
 #include "robot_models/SwerveContraints.h"
 #include "robot_models/SwerveCost.h"
 
-// ==========================================================
-// 全局状态与资源
-// ==========================================================
+
 MPCUIState g_mpc_ui_state;
 MpcParams params;
 
@@ -53,17 +51,17 @@ static const double MPC_DT = 0.02; // 50Hz - 0.02s
 static std::vector<std::vector<double>> g_ref_traj; // 参考轨迹
 static std::vector<std::vector<double>> g_act_traj; // 实际轨迹
 static std::vector<std::vector<double>> g_pred_traj; // 预测轨迹
-static const size_t MAX_ACT_TRAJ_LEN = 3000;         // 实际轨迹保留的最大长度
+static const size_t MAX_ACT_TRAJ_LEN = 1000;
 static const size_t REF_GLOBAL_STEPS = 3000; 
 
-// 辅助函数：四元数转 Yaw 角
+// 四元数转 Yaw 角
 static double get_yaw_from_quaternion(double w, double x, double y, double z) {
     double siny_cosp = 2 * (w * z + x * y);
     double cosy_cosp = 1 - 2 * (y * y + z * z);
     return std::atan2(siny_cosp, cosy_cosp);
 }
 
-// 辅助函数 角度归一化到 [-PI, PI]
+// 角度归一化到 [-PI, PI]
 static double normalize_angle(double a) {
     while (a >  M_PI) a -= 2.0 * M_PI;
     while (a < -M_PI) a += 2.0 * M_PI;
@@ -71,12 +69,12 @@ static double normalize_angle(double a) {
 }
 
 // ==========================================================
-// 初始化函数
+// 初始化
 // ==========================================================
 void init_nmpc(const mjModel* m, mjData* d) {
     cached_model = m;
     
-    // 1. 寻找 Base Link 索引 (根据 XML 中 Free Joint 的名字)
+    // 绑定 MuJoCo MJCF节点
     int base_jnt = mj_name2id(m, mjOBJ_JOINT, "floating_base"); 
     if(base_jnt != -1) {
         hw_ids.base_qpos_adr = m->jnt_qposadr[base_jnt];
@@ -85,7 +83,6 @@ void init_nmpc(const mjModel* m, mjData* d) {
         std::cerr << "[Warning] Could not find floating_base joint" << std::endl;
     }
 
-    // 2. 寻找四舵轮执行器和关节的索引
     std::string drive_names[4] = {"Wheel_1_drive_joint", "Wheel_2_drive_joint", "Wheel_3_drive_joint", "Wheel_4_drive_joint"};
     std::string steer_names[4] = {"Wheel_1_direction_joint", "Wheel_2_direction_joint", "Wheel_3_direction_joint", "Wheel_4_direction_joint"};
     std::string steer_jnt_names[4] = {"Wheel_1_direction_joint", "Wheel_2_direction_joint", "Wheel_3_direction_joint", "Wheel_4_direction_joint"};
@@ -99,7 +96,7 @@ void init_nmpc(const mjModel* m, mjData* d) {
 
     std::cout << "FIND MUJOCO JOINT" << std::endl;
 
-    // 3. 初始化 NMPC 求解器
+    // MPC 参数配置加载（暂用绝对地址）
     std::string config_path = "/home/galbot/galbot_ws/aca_test/src/nmpc_ctrl/config/mpc_config.yaml";
     params.loadFromYaml(config_path);
 
@@ -109,10 +106,8 @@ void init_nmpc(const mjModel* m, mjData* d) {
 
     OcpProblem ocp(params.solver_cfg);
     
-    // 3.1 动力学
     ocp.setDynamics<SwerveDynamics>(params.wheel_base, params.track_width);
 
-    // 3.2 边界约束
     ocp.addBound(S::pathAndTerminal(), B{B::STATE,                 
         {3, 4, 5},
         {-params.max_vel, -params.max_vel, -params.max_yaw_rate},
@@ -123,14 +118,12 @@ void init_nmpc(const mjModel* m, mjData* d) {
         {-params.max_acc, -params.max_acc, -params.max_yaw_acc},
         { params.max_acc,  params.max_acc,  params.max_yaw_acc}});
 
-    // 3.3 非线性约束 (舵轮偏角等)
     ocp.addNonlinear<SwerveConstraints>(S::pathAndTerminal(),      
         params.wheel_base, params.track_width,
         params.steer_lim_max, params.steer_lim_min);
 
     ocp.setCost<SwerveCost>(params.solver_cfg.nx, params.solver_cfg.nu);    // 设定跟踪代价函数
 
-    // 3.4 核心构建调用，分配 acados 内存
     chassis_mpc_solver = ocp.build();
     if (!chassis_mpc_solver) {
         std::cerr << "[Error] MPC Solver build failed!" << std::endl;
@@ -138,14 +131,14 @@ void init_nmpc(const mjModel* m, mjData* d) {
     }
     wrapper_ = ocp.takeWrapper();
 
-    // 4. 初始化其他组件
+    // 初始化其他组件
     ref_generator = std::make_unique<ReferenceGenerator>();
     ref_generator->init(params, params.solver_cfg.nx, params.solver_cfg.nu);
 
     steering_ik_solver = std::make_unique<SteeringIK>();
     steering_ik_solver->init(params); 
 
-    // 5. 进行简单的状态与参数的冷启动（防止底层出现 NaN 导致崩溃）
+    // 状态与参数的冷启动
     std::vector<double> init_state = params.x0;
     if (init_state.size() < chassis_mpc_solver->get_x_dimension()) {
         init_state.resize(chassis_mpc_solver->get_x_dimension(), 0.0);
@@ -172,7 +165,7 @@ void init_nmpc(const mjModel* m, mjData* d) {
 }
 
 // ==========================================================
-// 控制回调函数
+// 控制回调
 // ==========================================================
 void nmpc_control_callback(const mjModel* m, mjData* d) {
     if (!g_mpc_ui_state.enable_mpc) return;
@@ -187,13 +180,14 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
 
     double current_time = d->time;
 
-    // 频率控制 (例如 50Hz)
+    // 频率控制
     if (current_time - last_mpc_time < MPC_DT) {
         return; 
     }
     last_mpc_time = current_time;
 
     // 1. 提取当前底盘状态
+    // 包括世界坐标系下位置(x,y)和航向角(yaw)，以及体坐标系下速度(vx, vy)和航向角速度(omega)
     std::vector<double> current_state(6, 0.0);
     if (hw_ids.base_qpos_adr != -1) {
         current_state[0] = d->qpos[hw_ids.base_qpos_adr];
@@ -208,6 +202,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         current_state[5] = d->qvel[hw_ids.base_qvel_adr + 5];
     }
 
+    // 暂时未用
     std::vector<double> current_steer_angles(4, 0.0);
     for(int i=0; i<4; ++i) {
         if(hw_ids.steer_qpos_idx[i] != -1) {
@@ -215,41 +210,41 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         }
     }
 
-    // DEBUG: 打印状态提取和MPC解算结果
+    // DEBUG 打印状态提取和MPC解算结果
     static int dbg_count = 0;
-    if (dbg_count % 50 == 0) {
-            printf("[NMPC DEBUG] current steer angles: ");
-            for(int i = 0; i < 4; i++) {
-                printf("W%d[steer angle=%.3f] ", i, current_steer_angles[i]);
-            }
-            printf("\n");
-    }
+    dbg_count++;
+    // if (dbg_count % 50 == 0) {
+    //         printf("[NMPC DEBUG] current steer angles: ");
+    //         for(int i = 0; i < 4; i++) {
+    //             printf("W%d[steer angle=%.3f] ", i, current_steer_angles[i]);
+    //         }
+    //         printf("\n");
+    // }
 
     // 2. 解算 MPC
     int N = chassis_mpc_solver->N();
-    int nx = chassis_mpc_solver->get_x_dimension(); // 通常为 6
-    int nu = chassis_mpc_solver->get_u_dimension(); // 通常为 3
+    int nx = chassis_mpc_solver->get_x_dimension();
+    int nu = chassis_mpc_solver->get_u_dimension();
 
-    // 1. 设置当前真实状态 x0
+    // auto start = std::chrono::high_resolution_clock::now();
     chassis_mpc_solver->set_x0(current_state.data());
 
-    // B. 计算车体前后倒车的方向指令参数，用于 SwerveConstraints
     double vx_global_ref = ref_generator->at(current_time).val[3];
     double vy_global_ref = ref_generator->at(current_time).val[4];
     double v_body_x = vx_global_ref * std::cos(current_state[2]) + vy_global_ref * std::sin(current_state[2]);
     double current_dir = (v_body_x < -1e-2) ? -1.0 : 1.0;
     double p_val[1] = { current_dir };
 
-    // C. 循环遍历预测视野 N，设置每个 stage 的参考轨迹和参数
+    // 循环遍历预测视野 N，设置每个 stage 的参考轨迹和参数
     for (int stage = 0; stage <= N; stage++) {
         double pred_time = current_time + stage * MPC_DT;
         auto ref = ref_generator->at(pred_time); 
         
-        // 处理 yaw 连续性，防止 360 度跳变
+        // 处理 yaw 连续性
         double dyaw = normalize_angle(ref.val[2] - current_state[2]);
         ref.val[2] = current_state[2] + dyaw;
 
-        // 设置在线参数(约束需要)
+        // 设置在线参数，约束需要
         chassis_mpc_solver->set_online_parameter(stage, p_val);
 
         if (stage < N) {
@@ -264,19 +259,30 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         }
     }
 
-    // 3. 执行求解
+    // 3. 求解
+    auto start = std::chrono::high_resolution_clock::now();
     int solve_status = chassis_mpc_solver->solve();
+    auto end = std::chrono::high_resolution_clock::now();
+    int sqp_iter = chassis_mpc_solver->get_sqp_iter();
+    double solve_time = chassis_mpc_solver->get_solve_time();
+    std::chrono::duration<double, std::micro> duration = end - start;
+    if (dbg_count % 50 == 0) {
+        std::cout << "[NMPC] Prediction steps: " << N << std::endl;
+        std::cout << "[NMPC] Total solve time: " << duration.count() << " us" << std::endl;
+        std::cout << "[NMPC] SQP iterations: " << sqp_iter << std::endl;
+        // std::cout << "[NMPC] Average time per step: " << duration.count() / N << " us" << std::endl;
+        std::cout << "[NMPC] Total solve time: " << 1000 * solve_time << " ms" << std::endl;
+    }
 
     // 提取预测位置和全局参考位置，在仿真中渲染轨迹
     if (g_mpc_ui_state.show_trajectory && solve_status == 0) {
         std::vector<std::vector<double>> current_pred_traj;
         std::vector<std::vector<double>> current_ref_traj;
 
-        // (1) 提取 MPC 预测的未来状态坐标 (红线)
+        // 提取 MPC 预测的状态坐标
         for (int i = 0; i <= N; i++) {
             std::vector<double> pred_x(nx, 0.0);
             chassis_mpc_solver->get_x(i, pred_x.data());
-            // Z轴给一个稍高一点点的值，例如 0.12，避免重叠闪烁
             current_pred_traj.push_back({pred_x[0], pred_x[1], 0.12}); 
         }
 
@@ -285,16 +291,15 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
             current_ref_traj.push_back({ref.val[0], ref.val[1], 0.09}); // Z轴稍微低一点点
         }
 
-        // 记录实际轨迹用于可视化 (无论是否到 MPC 结算周期都记录)
+        // 实际轨迹
         if (hw_ids.base_qpos_adr != -1) {
             double current_x = d->qpos[hw_ids.base_qpos_adr];
             double current_y = d->qpos[hw_ids.base_qpos_adr + 1];
-            // 假设底盘高度 Z 在 0.1 左右，用于渲染线段
             g_act_traj.push_back({current_x, current_y, 0.12});
             if (g_act_traj.size() > MAX_ACT_TRAJ_LEN) g_act_traj.erase(g_act_traj.begin());
         }
 
-        // 加锁传入全局绘图变量
+        // 传入全局绘图变量
         {
             std::lock_guard<std::mutex> lock(g_mpc_ui_state.mtx);
             g_pred_traj = current_pred_traj;
@@ -302,7 +307,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         }
     }
 
-    // 4. 提取第 1 步的最优预测状态作为目标执行 (取索引 1 的状态，而不是索引 0)
+    // 4. 提取首步的最优预测状态作为目标执行
     std::vector<double> x1(nx, 0.0);
     chassis_mpc_solver->get_x(1, x1.data());
 
@@ -311,45 +316,45 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
     double vy_global_target = x1[4];
     double dyaw_target      = x1[5];
 
-    if (dbg_count++ % 50 == 0) {
-        printf("[NMPC DEBUG] current_state: [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\n",
-               current_state[0], current_state[1], current_state[2],
-               current_state[3], current_state[4], current_state[5]);
-        printf("[NMPC DEBUG] x1 (next target): [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\n",
-               x1[0], x1[1], x1[2], x1[3], x1[4], x1[5]);
-        printf("[NMPC DEBUG] Global target vel: vx=%.3f vy=%.3f dyaw=%.3f\n",
-               vx_global_target, vy_global_target, dyaw_target);
-    }
+    // if (dbg_count % 50 == 0) {
+    //     printf("[NMPC DEBUG] current_state: [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\n",
+    //            current_state[0], current_state[1], current_state[2],
+    //            current_state[3], current_state[4], current_state[5]);
+    //     printf("[NMPC DEBUG] x1 (next target): [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\n",
+    //            x1[0], x1[1], x1[2], x1[3], x1[4], x1[5]);
+    //     printf("[NMPC DEBUG] Global target vel: vx=%.3f vy=%.3f dyaw=%.3f\n",
+    //            vx_global_target, vy_global_target, dyaw_target);
+    // }
 
-    // F. 将全局速度转为体坐标系速度
+    // 将全局速度转为体坐标系速度
     double vx_body, vy_body;
     double c = cos(current_state[2]), s = sin(current_state[2]);
     vx_body =  c * vx_global_target + s * vy_global_target;
     vy_body = -s * vx_global_target + c * vy_global_target;
 
-    if (dbg_count % 50 == 0) {
-        printf("[NMPC DEBUG] Body target vel: vx_body=%.3f vy_body=%.3f (yaw=%.3f)\n",
-               vx_body, vy_body, current_state[2]);
-    }
+    // if (dbg_count % 50 == 0) {
+    //     printf("[NMPC DEBUG] Body target vel: vx_body=%.3f vy_body=%.3f (yaw=%.3f)\n",
+    //            vx_body, vy_body, current_state[2]);
+    // }
 
     // G. 底盘逆运动学分配
     WheelCmd wheel_cmds[NUM_WHEELS]; 
     if (solve_status == 0) {
         steering_ik_solver->compute(vx_body, vy_body, dyaw_target, wheel_cmds, MPC_DT);
-        if (dbg_count % 50 == 0) {
-            printf("[NMPC DEBUG] Wheel commands: ");
-            for(int i = 0; i < 4; i++) {
-                printf("W%d[steer=%.3f,vel=%.3f] ", i, wheel_cmds[i].steer_angle, wheel_cmds[i].drive_vel);
-            }
-            printf("\n");
-        }
+        // if (dbg_count % 50 == 0) {
+        //     printf("[NMPC DEBUG] Wheel commands: ");
+        //     for(int i = 0; i < 4; i++) {
+        //         printf("W%d[steer=%.3f,vel=%.3f] ", i, wheel_cmds[i].steer_angle, wheel_cmds[i].drive_vel);
+        //     }
+        //     printf("\n");
+        // }
     } else {
-        // 如果求解失败，使用 0 速度或上一帧速度安全停止
+        // 求解失败安全停止
         steering_ik_solver->compute(0.0, 0.0, 0.0, wheel_cmds, MPC_DT);
         printf("[MPC] Warning: Solve failed with status %d\n", solve_status);
     }
 
-    // H. 下发执行器
+    // 下发执行器
     for(int i = 0; i < 4; ++i) {
         if(hw_ids.drive_ctrl_idx[i] != -1)
             d->ctrl[hw_ids.drive_ctrl_idx[i]] = wheel_cmds[i].drive_omega; // 转为轮子角速度
@@ -389,7 +394,7 @@ void render_mpc_trajectory(mjvScene* scn) {
         }
     };
 
-    draw_path(act_traj, 0.0f, 0.5f, 1.0f, 1.0f, 5.0); // 实际轨迹蓝线
-    draw_path(ref_traj, 0.0f, 1.0f, 0.0f, 1.0f, 5.0);
-    draw_path(pred_traj, 1.0f, 0.0f, 0.0f, 1.0f, 20.0);
+    draw_path(act_traj, 0.0f, 0.5f, 1.0f, 1.0f, 5.0);     // 实际轨迹
+    draw_path(ref_traj, 0.0f, 1.0f, 0.0f, 1.0f, 5.0);     // 参考轨迹
+    draw_path(pred_traj, 1.0f, 0.0f, 0.0f, 1.0f, 20.0);     // 预测轨迹
 }

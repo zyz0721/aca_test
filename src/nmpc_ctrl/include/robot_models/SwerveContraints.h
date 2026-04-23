@@ -13,7 +13,7 @@ public:
 		angle_half_ = (max_steer_angle_ - min_steer_angle_) / 2.0;
 		// FL FR RL RR
 		px_ = {wheelbase / 2.0,  wheelbase / 2.0, -wheelbase / 2.0,  -wheelbase / 2.0};
-		py_ = {trackwidth / 2.0, -trackwidth / 2.0, -trackwidth / 2.0,  trackwidth / 2.0};
+		py_ = {-trackwidth / 2.0, trackwidth / 2.0, -trackwidth / 2.0,  trackwidth / 2.0};
 
 	};
 

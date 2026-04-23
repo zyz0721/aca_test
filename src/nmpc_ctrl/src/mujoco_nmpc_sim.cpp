@@ -4,6 +4,7 @@
 #include <memory>
 #include <cmath>
 #include <mutex>
+#include <chrono>
 
 // 引入 NMPC 框架头文件 
 #include "ocp_core/OcpProblem.h"
@@ -178,7 +179,14 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
         auto term_q = get_reference_q(t + N * MPC_DT);
         mpc_solver->set_yref(N, term_q.data()); // 终端参考点
 
+        auto start = std::chrono::high_resolution_clock::now();
+    
         if (mpc_solver->solve() == 0) {
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::micro> duration = end - start;
+            std::cout << "[NMPC] Prediction steps: " << N << std::endl;
+            std::cout << "[NMPC] Total solve time: " << duration.count() << " us" << std::endl;
+            std::cout << "[NMPC] Average time per step: " << duration.count() / N << " us" << std::endl;
             // 解析出下个时刻的期望状态作为控制位置指令
             std::vector<double> next_q(7);
             mpc_solver->get_x(1, next_q.data()); 

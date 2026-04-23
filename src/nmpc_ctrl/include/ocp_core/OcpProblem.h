@@ -153,7 +153,7 @@ public:
 	    // --- 加载 .so ---
         try {
             wrapper_ = std::make_unique<AcadosWrapper>(cfg_.N, np);
-            wrapper_->loadLibrary(so_path, nl_for_jit != nullptr);
+            wrapper_->loadLibrary(so_path, nl_for_jit != nullptr, has_nl_cost);
         } catch (const std::exception& e) {
             printf("[OcpProblem] Load failed: %s\n", e.what());
             return nullptr;

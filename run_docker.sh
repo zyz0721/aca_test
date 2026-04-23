@@ -4,13 +4,13 @@ IMAGE_NAME="ros1_mpc_galbot"
 CONTAINER_NAME="mpc_dev_env"
 
 # 1. 构建 Docker 镜像
-# if [[ "$(docker images -q $IMAGE_NAME 2> /dev/null)" == "" ]]; then
-#     echo "正在构建 Docker 镜像 $IMAGE_NAME..."
-#     docker build -t $IMAGE_NAME .
-# fi
+if [[ "$(docker images -q $IMAGE_NAME 2> /dev/null)" == "" ]]; then
+    echo "正在构建 Docker 镜像 $IMAGE_NAME..."
+    docker build -t $IMAGE_NAME .
+fi
 
-echo "正在构建 Docker 镜像 $IMAGE_NAME..."
-docker build -t $IMAGE_NAME .
+# echo "正在构建 Docker 镜像 $IMAGE_NAME..."
+# docker build -t $IMAGE_NAME .
 
 # 2. 允许本地 X11 访问 (为了能够显示 Gazebo 和 Rviz)
 xhost +local:root

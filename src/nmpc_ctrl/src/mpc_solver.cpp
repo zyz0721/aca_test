@@ -129,8 +129,8 @@ bool MPCSolver::setup(AcadosWrapper& wrapper, const OcpConstraints& ocp_constr, 
     config_ = ocp_nlp_config_create(*plan_);                       
 
     // 创建维度对象，调用ocp_nlp_dims_set定义变量维度，包括状态以及输入
-    dims_ = ocp_nlp_dims_create(config_);                          
-    set_dimensions(ocp_constr);                                 
+    dims_ = ocp_nlp_dims_create(config_);
+    set_dimensions(ocp_constr, cost);                                 
 
     in_  = ocp_nlp_in_create(config_, dims_);
     out_ = ocp_nlp_out_create(config_, dims_);
@@ -167,7 +167,7 @@ bool MPCSolver::setup(AcadosWrapper& wrapper, const OcpConstraints& ocp_constr, 
 }
 
 // 使用 nx_/nu_ 成员变量代替全局宏 NX/NU
-void MPCSolver::set_dimensions(const OcpConstraints& constr) {
+void MPCSolver::set_dimensions(const OcpConstraints& constr, const CostBase* cost) {
     std::vector<int> nx_a(N_+1), nu_a(N_+1), nz_a(N_+1, 0), ns_a(N_+1, 0), np_a(N_+1, cfg_.np);
     for (int i = 0; i <= N_; i++) {
         nx_a[i] = nx_;
@@ -192,8 +192,20 @@ void MPCSolver::set_dimensions(const OcpConstraints& constr) {
         v = nu_; ocp_nlp_dims_set_dynamics(config_, dims_, i, "nu", &v);
         v = 0;   ocp_nlp_dims_set_dynamics(config_, dims_, i, "nz", &v);
     }
+    // 从 CostBase 获取残差维度 (如果存在)
+    // SwerveCostV2 返回 ny = nx + nu + 1, nye = nx + 1
+    int ny_default = nx_ + nu_;
+    int nye_default = nx_;
+
     for (int i = 0; i <= N_; i++) {
-        int ny = (i < N_) ? (nx_ + nu_) : nx_;
+        int ny, nye;
+        if (cost != nullptr) {
+            ny = (i < N_) ? cost->getNumStageResiduals() : cost->getNumTerminalResiduals();
+            nye = cost->getNumTerminalResiduals();
+        } else {
+            ny = (i < N_) ? ny_default : nye_default;
+            nye = nye_default;
+        }
         ocp_nlp_dims_set_cost(config_, dims_, i, "ny", &ny);
     }
 
@@ -290,6 +302,23 @@ void MPCSolver::set_dynamics(AcadosWrapper& wrapper) {
     }
 }
 
+// 统计与诊断接口
+int MPCSolver::get_sqp_iter() {
+    int sqp_iter = 0.0;
+    if (solver_) {
+        ocp_nlp_get(solver_, "sqp_iter", &sqp_iter);
+    }
+    return sqp_iter;
+}
+
+double MPCSolver::get_solve_time() {
+    double time_tot = 0.0;
+    if (solver_) {
+        ocp_nlp_get(solver_, "time_tot", &time_tot);    // acados 内部记录的总求解时间，单位秒
+    }
+    return time_tot;
+}
+
 // ★ 代价函数使用 nx_/nu_ 和 cfg_.W/W_e，不再依赖宏
 // ==================== src/mpc_solver.cpp ====================
 void MPCSolver::set_cost(AcadosWrapper& wrapper, const CostBase* cost, const OcpConstraints& constr) {
@@ -331,8 +360,8 @@ void MPCSolver::set_cost(AcadosWrapper& wrapper, const CostBase* cost, const Ocp
                 ocp_nlp_cost_model_set(config_, dims_, in_, i, "Vu", Vu.data());
             } else {
                 // NONLINEAR_LS 模式，绑定由 AcadosWrapper 暴露出的 JIT 函数
-                ocp_nlp_cost_model_set(config_, dims_, in_, i, "nl_cost_y_fun", wrapper.getCostYFun(i));
-                ocp_nlp_cost_model_set(config_, dims_, in_, i, "nl_cost_y_fun_jac_ut_xt", wrapper.getCostYJac(i));
+                ocp_nlp_cost_model_set(config_, dims_, in_, i, "nls_y_fun", wrapper.getCostYFun(i));
+                ocp_nlp_cost_model_set(config_, dims_, in_, i, "nls_y_fun_jac", wrapper.getCostYJac(i));
             }
         } else {
 
@@ -343,8 +372,8 @@ void MPCSolver::set_cost(AcadosWrapper& wrapper, const CostBase* cost, const Ocp
                 std::vector<double> Vxe = cost ? cost->getVxe() : default_Vxe;
                 ocp_nlp_cost_model_set(config_, dims_, in_, N_, "Vx", Vxe.data());
             } else {
-                ocp_nlp_cost_model_set(config_, dims_, in_, N_, "nl_cost_y_fun", wrapper.getCostYEFun(N_));
-                ocp_nlp_cost_model_set(config_, dims_, in_, N_, "nl_cost_y_fun_jac_x", wrapper.getCostYEJac(N_));
+                ocp_nlp_cost_model_set(config_, dims_, in_, N_, "nls_y_fun", wrapper.getCostYEFun(N_));
+                ocp_nlp_cost_model_set(config_, dims_, in_, N_, "nls_y_fun_jac", wrapper.getCostYEJac(N_));
             }
         }
         // 挂载松弛变量的代价权重

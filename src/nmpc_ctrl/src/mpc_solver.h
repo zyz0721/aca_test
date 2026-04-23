@@ -88,6 +88,9 @@ public:
     int get_x_dimension() const { return nx_; }
     int get_u_dimension() const { return nu_; }
     int  N() const { return N_; }
+    // --- 统计与诊断接口 ---
+    int get_sqp_iter();
+    double get_solve_time();
 
 private:
     // MpcParams p_;
@@ -108,7 +111,7 @@ private:
 
     // const CostBase* cost_ = nullptr;
 
-    void set_dimensions(const OcpConstraints& constr);
+    void set_dimensions(const OcpConstraints& constr, const CostBase* cost);
     void set_constraints(AcadosWrapper& wrapper, const OcpConstraints& constr);
     void set_dynamics(AcadosWrapper& wrapper);
     void set_cost(AcadosWrapper& wrapper, const CostBase* cost, const OcpConstraints& constr);

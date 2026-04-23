@@ -16,7 +16,7 @@ solver:
   N: 20
   T: 1.0                       # 预测时域 [s]
   hz: 50.0                     # 控制频率 [Hz]
-  algorithm: "SQP_RTI"         # 可选: "SQP_RTI" 或 "SQP"
+  algorithm: "SQP"         # 可选: "SQP_RTI" 或 "SQP"
   sqp_max_iter: 50             # FULL SQP 模式下的最大迭代次数
 
 # --- 参考轨迹 ---
