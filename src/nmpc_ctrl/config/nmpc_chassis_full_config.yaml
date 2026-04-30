@@ -1,0 +1,79 @@
+# ============================================================
+# 四舵轮底盘 NMPC 完整配置
+# 参考: singorix_nmpc/steer_nmpc.hpp VehicleConfig
+# ============================================================
+
+# --- 求解器参数 ---
+solver:
+  N: 20                        # 预测步数
+  dt: 0.02                     # 时间步长 [s]
+  nx: 6                        # 状态维度 [x, y, yaw, vx, vy, dyaw]
+  nu: 3                        # 控制维度 [ax, ay, ddyaw]
+  np: 1                        # 在线参数维度 (运动方向)
+  T: 0.4                       # 预测时域 [s] (N * dt)
+  hz: 50.0                     # 控制频率 [Hz]
+  algorithm: "SQP"             # SQP 或 SQP_RTI
+  sqp_max_iter: 100            # SQP最大迭代次数
+
+# --- 车辆几何参数 ---
+vehicle:
+  wheel_base: 0.494            # 轴距 [m] (URDF: +-0.247)
+  track_width: 0.494           # 轮距 [m] (URDF: +-0.247)
+  wheel_radius: 0.08           # 轮子半径 [m]
+
+# --- 运动学限制 ---
+kinematics:
+  max_vel: 2.0                 # 最大线速度 [m/s]
+  max_acc: 1.0                 # 最大线加速度 [m/s^2]
+  max_yaw_rate: 1.5            # 最大角速度 [rad/s]
+  max_yaw_acc: 2.0             # 最大角加速度 [rad/s^2]
+
+# --- 舵轮参数 ---
+steering:
+  steer_lim_min: -1.5708       # 舵角下限 [rad] (-pi/2)
+  steer_lim_max: 1.5708        # 舵角上限 [rad] (pi/2)
+  max_steer_rate: 10.0         # 最大舵角变化率 [rad/s]
+  max_wheel_vel: 20.0          # 最大轮面线速度 [m/s]
+
+# --- 过程代价权重 (参考 steer_nmpc.hpp) ---
+cost:
+  Q_xy: 15.0                   # 位置偏差权重
+  Q_yaw: 5.0                   # 航向偏差权重
+  Q_vxy: 1.0                   # 线速度偏差权重
+  Q_dyaw: 2.0                  # 角速度偏差权重
+  R_axy: 0.05                  # 线加速度平滑权重
+  R_ddyaw: 0.05                # 角加速度平滑权重
+  # 权重向量 W (nx + nu = 9)
+  W: [15.0, 15.0, 5.0, 1.0, 1.0, 2.0, 0.05, 0.05, 0.05]
+
+# --- 终端代价权重 ---
+cost_terminal:
+  Q_term_xy: 40.0              # 终端位置权重
+  Q_term_yaw: 10.0             # 终端航向权重
+  Q_term_vxy: 10.0             # 终端线速度权重
+  Q_term_dyaw: 10.0            # 终端角速度权重
+  # 权重向量 W_e (nx = 6)
+  W_e: [40.0, 40.0, 10.0, 10.0, 10.0, 10.0]
+
+# --- 软约束参数 ---
+soft_penalty:
+  steer_rate:
+    Z: 200.0                   # L2 惩罚权重 (二次惩罚)
+    z: 100.0                   # L1 惩罚权重 (线性惩罚)
+
+# --- 参考轨迹参数 ---
+reference:
+  type: "figure8"              # circle / line / figure8
+  radius: 1.5                  # 圆形轨迹半径 [m]
+  speed: 0.8                   # 圆形轨迹速度 [m/s]
+  line_vx: 0.8                 # 直线轨迹速度 [m/s]
+  fig8_a: 2.0                  # 8字形轨迹参数 a
+  fig8_omega: 0.3              # 8字形轨迹角频率
+
+# --- 初始状态 ---
+initial_state:
+  x0: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # [x, y, yaw, vx, vy, dyaw]
+
+# --- 运动方向阈值 ---
+motion_direction:
+  v_eps: 0.01                  # 速度阈值，判断前进/后退 [m/s]

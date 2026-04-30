@@ -268,7 +268,7 @@ void nmpc_control_callback(const mjModel* m, mjData* d) {
     std::chrono::duration<double, std::micro> duration = end - start;
     if (dbg_count % 50 == 0) {
         std::cout << "[NMPC] Prediction steps: " << N << std::endl;
-        std::cout << "[NMPC] Total solve time: " << duration.count() << " us" << std::endl;
+        // std::cout << "[NMPC] Total solve time: " << duration.count() << " us" << std::endl;
         std::cout << "[NMPC] SQP iterations: " << sqp_iter << std::endl;
         // std::cout << "[NMPC] Average time per step: " << duration.count() / N << " us" << std::endl;
         std::cout << "[NMPC] Total solve time: " << 1000 * solve_time << " ms" << std::endl;

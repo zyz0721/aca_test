@@ -4,13 +4,35 @@
 #include <cstring>
 #include <vector>
 #include <iostream>
-#include <yaml-cpp/yaml.h> 
+#include <yaml-cpp/yaml.h>
 
 #include "ocp_core/SolverConfig.h"
 
 
 // 舵轮约束
 #define NUM_WHEELS 4
+
+// ============================================================
+// 完整NMPC代价权重结构体 (参考 steer_nmpc.hpp VehicleConfig)
+// ============================================================
+struct FullCostWeights {
+    // 过程代价权重
+    double Q_xy = 15.0;
+    double Q_yaw = 5.0;
+    double Q_vxy = 1.0;
+    double Q_dyaw = 2.0;
+    // 控制量平滑权重
+    double R_axy = 0.05;
+    double R_ddyaw = 0.05;
+    // 终端代价权重
+    double Q_term_xy = 40.0;
+    double Q_term_yaw = 10.0;
+    double Q_term_vxy = 10.0;
+    double Q_term_dyaw = 10.0;
+    // 舵角变化率软约束惩罚
+    double W_steer_rate = 200.0;
+};
+
 // ============================================================
 // 参数结构体
 // ============================================================
@@ -51,6 +73,25 @@ struct MpcParams {
     
     // 在线参数维度
     int np = 1;
+
+    // --- 软约束惩罚参数 ---
+    double soft_Z = 200.0;  // L2 惩罚
+    double soft_z = 100.0;  // L1 惩罚
+
+    // --- 运动方向阈值 ---
+    double v_eps = 0.01;    // 速度阈值，判断前进/后退
+
+    // --- 代价权重（分离字段）---
+    double Q_xy = 15.0;
+    double Q_yaw = 5.0;
+    double Q_vxy = 1.0;
+    double Q_dyaw = 2.0;
+    double R_axy = 0.05;
+    double R_ddyaw = 0.05;
+    double Q_term_xy = 40.0;
+    double Q_term_yaw = 10.0;
+    double Q_term_vxy = 10.0;
+    double Q_term_dyaw = 10.0;
 
     // --- 初始状态 ---
     std::vector<double> x0;
@@ -112,7 +153,28 @@ struct MpcParams {
             wheel_lx[2] = -lx; wheel_ly[2] = -ly; // 左后
             wheel_lx[3] = -lx; wheel_ly[3] =  ly; // 右后
 
-            // 4. 读取 Cost 权重矩阵
+            // 4. 读取 Kinematics 运动学限制
+            if (config["kinematics"]) {
+                if (config["kinematics"]["max_vel"]) max_vel = config["kinematics"]["max_vel"].as<double>();
+                if (config["kinematics"]["max_acc"]) max_acc = config["kinematics"]["max_acc"].as<double>();
+                if (config["kinematics"]["max_yaw_rate"]) max_yaw_rate = config["kinematics"]["max_yaw_rate"].as<double>();
+                if (config["kinematics"]["max_yaw_acc"]) max_yaw_acc = config["kinematics"]["max_yaw_acc"].as<double>();
+            }
+
+            // 5. 读取 Steering 舵轮参数
+            if (config["steering"]) {
+                if (config["steering"]["steer_lim_min"]) steer_lim_min = config["steering"]["steer_lim_min"].as<double>();
+                if (config["steering"]["steer_lim_max"]) steer_lim_max = config["steering"]["steer_lim_max"].as<double>();
+                if (config["steering"]["max_steer_rate"]) max_steer_rate = config["steering"]["max_steer_rate"].as<double>();
+                if (config["steering"]["max_wheel_vel"]) max_wheel_vel = config["steering"]["max_wheel_vel"].as<double>();
+            }
+
+            // 6. 读取 Motion Direction 运动方向阈值
+            if (config["motion_direction"]) {
+                if (config["motion_direction"]["v_eps"]) v_eps = config["motion_direction"]["v_eps"].as<double>();
+            }
+
+            // 7. 读取 Cost 权重矩阵
             if (config["cost"] && config["cost"]["W"]) {
                 solver_cfg.W = config["cost"]["W"].as<std::vector<double>>();
             } else {
@@ -125,14 +187,36 @@ struct MpcParams {
                 solver_cfg.W_e.assign(solver_cfg.nx, 1.0); // 兜底
             }
 
-            // 5. 读取初始状态
+            // 解析软约束惩罚参数
+            if (config["soft_penalty"] && config["soft_penalty"]["steer_rate"]) {
+                if (config["soft_penalty"]["steer_rate"]["Z"]) soft_Z = config["soft_penalty"]["steer_rate"]["Z"].as<double>();
+                if (config["soft_penalty"]["steer_rate"]["z"]) soft_z = config["soft_penalty"]["steer_rate"]["z"].as<double>();
+            }
+
+            // 解析分离的代价权重
+            if (config["cost"]) {
+                if (config["cost"]["Q_xy"]) Q_xy = config["cost"]["Q_xy"].as<double>();
+                if (config["cost"]["Q_yaw"]) Q_yaw = config["cost"]["Q_yaw"].as<double>();
+                if (config["cost"]["Q_vxy"]) Q_vxy = config["cost"]["Q_vxy"].as<double>();
+                if (config["cost"]["Q_dyaw"]) Q_dyaw = config["cost"]["Q_dyaw"].as<double>();
+                if (config["cost"]["R_axy"]) R_axy = config["cost"]["R_axy"].as<double>();
+                if (config["cost"]["R_ddyaw"]) R_ddyaw = config["cost"]["R_ddyaw"].as<double>();
+            }
+            if (config["cost_terminal"]) {
+                if (config["cost_terminal"]["Q_term_xy"]) Q_term_xy = config["cost_terminal"]["Q_term_xy"].as<double>();
+                if (config["cost_terminal"]["Q_term_yaw"]) Q_term_yaw = config["cost_terminal"]["Q_term_yaw"].as<double>();
+                if (config["cost_terminal"]["Q_term_vxy"]) Q_term_vxy = config["cost_terminal"]["Q_term_vxy"].as<double>();
+                if (config["cost_terminal"]["Q_term_dyaw"]) Q_term_dyaw = config["cost_terminal"]["Q_term_dyaw"].as<double>();
+            }
+
+            // 8. 读取初始状态
             if (config["initial_state"] && config["initial_state"]["x0"]) {
                 x0 = config["initial_state"]["x0"].as<std::vector<double>>();
             } else {
                 x0.assign(solver_cfg.nx, 0.0);
             }
 
-            // 6. 读取其他模式信息(兼容用)
+            // 9. 读取其他模式信息(兼容用)
             if (config["mode"]) {
                 if (config["mode"]["sim"]) sim_mode = config["mode"]["sim"].as<bool>();
                 if (config["mode"]["odom_topic"]) odom_topic = config["mode"]["odom_topic"].as<std::string>();
