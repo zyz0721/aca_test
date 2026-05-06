@@ -1,11 +1,3 @@
-启动脚本
-
-cd catkin_ws
-
-roslaunch nmpc_ctrl gazebo_mpc.launch
-
-
-
 ### 核心思想
 
 绕过 acados 的 Python codegen 管线，在纯 C++ 中完成"模型定义 → 符号图构建 → JIT 编译 → 求解器绑定"的全流程。
