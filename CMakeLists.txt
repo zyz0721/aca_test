@@ -90,8 +90,7 @@ add_executable(mujoco_sim_run
     ${MUJOCO_DIR}/simulate/main.cc
     ${NMPC_SRC}
     ${MUJOCO_SIMULATE_SRC}        # MuJoCo 原版界面源码
-    # src/nmpc_ctrl/src/mujoco_chassis_nmpc_sim.cpp
-    src/nmpc_ctrl/src/chassis_nmpc_full.cpp
+    src/nmpc_ctrl/src/mujoco_chassis_nmpc_sim.cpp
 )
 
 add_executable(arm_sim_run
