@@ -2,12 +2,6 @@
 # 四舵轮 MPC 完整配置
 # ============================================================
 
-# --- 运行模式 ---
-mode:
-  sim: true                    # Gazebo 模式用 false, 从 /odom 读状态
-  odom_topic: "/odom"           # p3d 插件发布的 ground truth
-  joint_cmd_topic: "/joint_commands"
-
 # --- 求解器 ---
 solver:
   nx: 6
